@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package yelp;
+
+service BusinessService {
+  rpc GetBusiness (GetBusinessRequest) returns (BusinessResponse);
+  rpc ListBusinesses (ListBusinessesRequest) returns (ListBusinessesResponse);
+}
+
+message GetBusinessRequest {
+  string business_id = 1;
+}
+
+message ListBusinessesRequest {
+  string city = 1;
+  float min_stars = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message BusinessResponse {
+  string id = 1;
+  string name = 2;
+  string city = 3;
+  string state = 4;
+  float stars = 5;
+  int32 review_count = 6;
+  bool is_open = 7;
+  string categories = 8;
+  float latitude = 9;
+  float longitude = 10;
+  string address = 11;
+  string postal_code = 12;
+}
+
+message ListBusinessesResponse {
+  repeated BusinessResponse businesses = 1;
+}

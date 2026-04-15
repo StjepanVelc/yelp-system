@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package yelp;
+
+message ReviewMessage {
+  string review_id = 1;
+  string user_id = 2;
+  string business_id = 3;
+  float stars = 4;
+  int32 useful = 5;
+  int32 funny = 6;
+  int32 cool = 7;
+  string text = 8;
+  string date = 9;
+}
+
+message UserMessage {
+  string user_id = 1;
+  string name = 2;
+  int32 review_count = 3;
+  string yelping_since = 4;
+  int32 fans = 5;
+  float average_stars = 6;
+}
+
+message TipMessage {
+  string user_id = 1;
+  string business_id = 2;
+  string text = 3;
+  string date = 4;
+  int32 compliment_count = 5;
+}
+
+message CheckinMessage {
+  string business_id = 1;
+  string date = 2;
+}

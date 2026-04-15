@@ -1,0 +1,61 @@
+# Data — Yelp JSON dataseti su preveliki za git
+infrastructure/data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+.env/
+
+# Environment variables
+.env
+*.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (lokalni postgres podaci)
+infrastructure/db/
+
+# pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy / pyright cache
+.mypy_cache/
+.pyright/
+
+# grpc generated files (mogu se regenerirati iz .proto)
+
+# shared/generated/
+# services/**/app/grpc/*_pb2*.py
+# services/**/app/grpc/*_pb2*.pyi

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package yelp;
+
+import "business.proto";
+
+service RecommendationService {
+  rpc GetRecommendations (RecommendationRequest) returns (RecommendationResponse);
+}
+
+message RecommendationRequest {
+  string business_id = 1;
+  int32 limit = 2;
+}
+
+message RecommendationResponse {
+  repeated BusinessResponse recommendations = 1;
+}

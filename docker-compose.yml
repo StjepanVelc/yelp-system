@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-gateway
+      - business-service
+      - recommendation-service
+      - ingestion-service
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - BUSINESS_SERVICE_URL=http://business-service:8001
+      - RECOMMENDATION_SERVICE_URL=http://recommendation-service:8002
+      - INGESTION_SERVICE_URL=http://ingestion-service:8003
+    depends_on:
+      - business-service
+      - recommendation-service
+
+  business-service:
+    build: ./services/business-service
+    ports:
+      - "8001:8001"
+      - "50051:50051"
+    environment:
+      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
+    depends_on:
+      - db
+
+  recommendation-service:
+    build: ./services/recommendation-service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
+      - BUSINESS_SERVICE_GRPC=business-service:50051
+    depends_on:
+      - business-service
+
+  ingestion-service:
+    build: ./services/ingestion-service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./infrastructure/data/raw:/data/raw
+    environment:
+      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
+      - DATA_PATH=/data/raw
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: yelp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: stipe245gaba
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
