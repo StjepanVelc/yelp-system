@@ -1,6 +1,12 @@
 # Data — Yelp JSON dataseti su preveliki za git
 infrastructure/data/
 
+# ── Node.js / Next.js ──────────────────────────────────────────────────────────
+node_modules/
+.next/
+.npm/
+npm-debug.log*
+
 # Python
 __pycache__/
 *.py[cod]
