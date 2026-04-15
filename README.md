@@ -4,6 +4,21 @@ Distribuirana microservices aplikacija za pretragu i preporuke poslovnih objekat
 
 ---
 
+## ⚠️ Status
+
+This project is actively under development.
+
+Current implemented components:
+- PostgreSQL database with ~10M+ records (Yelp dataset)
+- Ingestion pipeline (streaming + batch inserts)
+- Business-service (REST API with filtering)
+
+Planned / in progress:
+- API Gateway routing
+- Recommendation engine
+- Full microservice communication (gRPC)
+- Docker orchestration
+
 ## Arhitektura
 
 ```
