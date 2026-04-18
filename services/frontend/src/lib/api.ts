@@ -1,3 +1,14 @@
+export interface Review {
+    review_id: string;
+    user_id: string;
+    stars: number;
+    text: string;
+    date: string;
+    useful: number;
+    funny: number;
+    cool: number;
+}
+
 export interface Business {
     id: string;
     name: string;
@@ -31,7 +42,7 @@ export async function fetchBusinesses(params: {
         const res = await fetch(url.toString(), { cache: 'no-store' });
         if (!res.ok) return [];
         return res.json();
-    } catch {
+    } catch (_e) {
         return [];
     }
 }
@@ -41,8 +52,20 @@ export async function fetchBusiness(id: string): Promise<Business | null> {
         const res = await fetch(`${API_BASE}/businesses/${id}`, { cache: 'no-store' });
         if (!res.ok) return null;
         return res.json();
-    } catch {
+    } catch (_e) {
         return null;
+    }
+}
+
+export async function fetchReviews(id: string, page = 1, limit = 20): Promise<Review[]> {
+    try {
+        const res = await fetch(`${API_BASE}/businesses/${id}/reviews?page=${page}&limit=${limit}`, {
+            cache: 'no-store',
+        });
+        if (!res.ok) return [];
+        return res.json();
+    } catch (_e) {
+        return [];
     }
 }
 
@@ -53,7 +76,7 @@ export async function fetchRecommendations(id: string, limit = 6): Promise<Busin
         });
         if (!res.ok) return [];
         return res.json();
-    } catch {
+    } catch (_e) {
         return [];
     }
 }

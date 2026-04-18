@@ -16,6 +16,7 @@ message ListBusinessesRequest {
   float min_stars = 2;
   int32 page = 3;
   int32 limit = 4;
+  string state = 5;
 }
 
 message BusinessResponse {

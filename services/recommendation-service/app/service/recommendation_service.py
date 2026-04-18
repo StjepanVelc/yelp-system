@@ -12,14 +12,29 @@ def get_recommendations(business_id: str, limit: int = 10) -> list[dict]:
         log.warning("Business not found via gRPC: %s", business_id)
         return []
 
-    log.debug("Target business: %s (%s, %s)", target.get("name"), target.get("city"), target.get("state"))
+    log.debug("Target: %s (%s, %s)", target.get("name"), target.get("city"), target.get("state"))
+
+    # Fetch candidates from the same city first; fall back to state if too few
     candidates = list_businesses_in_area(
         city=target.get("city", ""),
         state=target.get("state", ""),
-        limit=500,
+        limit=1000,
     )
     log.debug("Fetched %d candidates via gRPC", len(candidates))
+
     ranked = rank_candidates(target, candidates)
+
+    # If not enough results from same city, expand to full state
+    if len(ranked) < limit:
+        state_candidates = list_businesses_in_area(
+            city="",
+            state=target.get("state", ""),
+            limit=1000,
+        )
+        log.debug("Expanded to state: %d additional candidates", len(state_candidates))
+        ranked = rank_candidates(target, state_candidates)
+
     log.info("Returning %d recommendations for %s", min(limit, len(ranked)), business_id)
     return ranked[:limit]
+
 

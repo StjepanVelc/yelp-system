@@ -1,281 +1,251 @@
-# Yelp System — Microservices Architecture
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-green)
+![Docker](https://img.shields.io/badge/Docker-enabled-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
 
-Distribuirana microservices aplikacija za pretragu i preporuke poslovnih objekata na temelju Yelp Open Dataset.
+# ⭐ Yelp System — Microservices Architecture
 
----
-
-## ⚠️ Status
-
-This project is actively under development.
-
-Current implemented components:
-- PostgreSQL database with ~10M+ records (Yelp dataset)
-- Ingestion pipeline (streaming + batch inserts)
-- Business-service (REST API with filtering)
-
-Planned / in progress:
-- API Gateway routing
-- Recommendation engine
-- Full microservice communication (gRPC)
-- Docker orchestration
-
-## Arhitektura
-
-```
-Internet
-    │
-    ▼
- Nginx (:80)
-    │
-    ▼
-API Gateway (:8000)
-    │
-    ├──► Business Service (:8001)  ◄──── PostgreSQL (:5432)
-    │         │
-    │         └── gRPC Server (:50051)
-    │                    ▲
-    └──► Recommendation Service (:8002)
-              (gRPC client → business-service)
-
-Ingestion Service (:8003) ──► PostgreSQL
-```
-
-### Servisi
-
-| Servis | Port | Opis |
-|---|---|---|
-| **nginx** | 80 | Reverse proxy — ulazna točka |
-| **api-gateway** | 8000 | HTTP proxy prema svim servisima |
-| **business-service** | 8001 / 50051 | CRUD za poslovne objekte + gRPC server |
-| **recommendation-service** | 8002 | Preporuke temeljene na kategorijama i lokaciji |
-| **ingestion-service** | 8003 | Učitavanje JSON dataseta u PostgreSQL |
-| **db (PostgreSQL)** | 5432 | Relacijska baza s 5 tablica |
+Distributed microservices application for **business search and recommendations**, powered by the Yelp Open Dataset (~10M+ records).
 
 ---
 
-## Struktura projekta
+## 🚀 Overview
+
+This project demonstrates a **production-style microservices architecture** with:
+
+* FastAPI-based backend services
+* PostgreSQL database (~10M+ records)
+* gRPC communication between services
+* API Gateway pattern
+* Nginx reverse proxy (rate limiting + security headers)
+* SSR frontend (Next.js)
+
+---
+
+## 🖥️ Application Preview
+
+### 🔍 Search Page
+
+![Search Page](docs/image/search-page.png)
+
+### 📄 Business Detail
+
+![Business Detail](docs/image/business-detail.png)
+
+### ⭐ Recommendations Engine
+
+![Recommendations](docs/image/recommendations.png)
+
+### 📝 Reviews System
+
+![Reviews](docs/image/reviews.png)
+
+---
+
+## 🧠 System Architecture
+
+![Architecture](docs/image/Architecture.png)
+
+---
+
+## 🗄️ Database Schema
+
+![Database](docs/image/database.png)
+
+* ~10.2 million records
+* 5 main tables: `businesses`, `users`, `reviews`, `tips`, `checkins`
+* Indexed for performance (city, stars, review_count…)
+
+---
+
+## ⚙️ Architecture Breakdown
 
 ```
-yelp-system/
-├── docker-compose.yml              # Orkestracija svih servisa
-├── requirements.txt                # Top-level Python ovisnosti
-├── infrastructure/
-│   ├── nginx/
-│   │   └── nginx.conf              # Nginx reverse proxy konfiguracija
-│   └── data/
-│       └── raw/                    # Yelp JSON dataset datoteke (5 GB+)
-│           ├── yelp_academic_dataset_business.json
-│           ├── yelp_academic_dataset_review.json
-│           ├── yelp_academic_dataset_user.json
-│           ├── yelp_academic_dataset_tip.json
-│           └── yelp_academic_dataset_checkin.json
-├── services/
-│   ├── api-gateway/
-│   │   └── app/
-│   │       ├── main.py             # FastAPI app, routing
-│   │       ├── config.py           # Settings (BaseSettings)
-│   │       ├── clients/            # httpx klijenti za downstream servise
-│   │       │   ├── business_client.py
-│   │       │   └── recommendation_client.py
-│   │       └── routes/
-│   │           ├── business.py
-│   │           └── recommendation.py
-│   ├── business-service/
-│   │   └── app/
-│   │       ├── main.py             # FastAPI app + gRPC thread
-│   │       ├── grpc_server.py      # gRPC server (BusinessService)
-│   │       ├── api/routes.py       # REST endpointovi
-│   │       ├── core/config.py      # Settings
-│   │       ├── db/session.py       # SQLAlchemy engine/session
-│   │       ├── models/business.py  # ORM modeli (5 tablica)
-│   │       ├── repository/         # SQL upiti
-│   │       ├── service/            # Poslovna logika
-│   │       └── grpc/               # Generirani protobuf stubs
-│   ├── recommendation-service/
-│   │   └── app/
-│   │       ├── main.py
-│   │       ├── algorithms/scoring.py      # Algoritam bodovanja kandidata
-│   │       ├── clients/business_client.py # gRPC klijent
-│   │       ├── service/recommendation_service.py
-│   │       └── api/routes.py
-│   └── ingestion-service/
-│       └── app/
-│           ├── main.py                         # FastAPI app s trigger endpointovima
-│           ├── loaders/json_loader.py          # Generator učitavači (line-by-line)
-│           ├── utils/parser.py                 # Parseri za svakih 5 entiteta
-│           ├── service/ingestion_service.py    # Batch ingestion logika
-│           ├── models.py                       # SQLAlchemy modeli
-│           └── db/session.py
-├── shared/
-│   ├── protobuf/                   # .proto definicije
-│   │   ├── business.proto
-│   │   ├── recommendation.proto
-│   │   └── common.proto
-│   ├── generated/                  # Generirani gRPC stubs
-│   ├── schemas/                    # Pydantic schemas
-│   └── utils/
-│       └── logger.py               # Centralni logger (get_logger)
-└── services/
-    ├── business-service/tests/test_business.py
-    ├── recommendation-service/tests/test_recommendation.py
-    ├── ingestion-service/tests/test_ingestion.py
-    └── api-gateway/tests/test_gateway.py
+Browser
+  │
+  ▼
+Nginx (:80)
+  ├── /api/*  → API Gateway (:8000)
+  │               ├── Business Service (:8001)
+  │               └── Recommendation Service (:8002)
+  │
+  └── Frontend (Next.js :3000)
+
+Business Service
+  ├── REST API
+  ├── gRPC Server (:50051)
+  └── PostgreSQL
+
+Recommendation Service
+  ├── REST API
+  └── gRPC Client → Business Service
+
+Ingestion Service
+  └── Loads Yelp dataset into PostgreSQL
 ```
 
 ---
 
-## Baza podataka
+## 🔍 Core Features
 
-PostgreSQL 15 s 5 tablica i ukupno **~10.2 milijuna zapisa**:
-
-| Tablica | Zapisi | Indeksi |
-|---|---|---|
-| `businesses` | 150,346 | city, stars, (city, stars) |
-| `users` | 1,987,897 | — |
-| `reviews` | 6,990,280 | business_id, user_id, stars |
-| `tips` | 908,915 | business_id, user_id |
-| `checkins` | 131,930 | business_id |
-
----
-
-## gRPC komunikacija
-
-`recommendation-service` komunicira s `business-service` isključivo putem gRPC-a (port 50051).
-
-Proto datoteke se nalaze u `shared/protobuf/`. Generirani stubs su kopirani u svaki servis koji ih koristi (`app/grpc/`).
-
-**RPC metode (BusinessService):**
-- `GetBusiness(BusinessRequest) → BusinessResponse`
-- `ListBusinesses(ListBusinessesRequest) → ListBusinessesResponse`
+* ✅ Business search (city + rating filters)
+* ✅ Business detail page (categories, location, status)
+* ✅ Recommendation engine (distance + category + rating)
+* ✅ Reviews system (paginated, sorted)
+* ✅ gRPC communication between services
+* ✅ API Gateway routing & validation
+* ✅ Rate limiting + security headers (Nginx)
+* ✅ Dockerized infrastructure
 
 ---
 
-## Nginx routing
+## 🧮 Recommendation Logic
 
-| Path | Proksira na |
-|---|---|
-| `/` | api-gateway:8000 (sav javni promet) |
-| `/internal/businesses/` | business-service:8001 (debug) |
-| `/internal/recommendations/` | recommendation-service:8002 (debug) |
-| `/internal/ingest/` | ingestion-service:8003 (admin) |
+Recommendations are calculated based on:
+
+* 📍 Geographic proximity (Haversine distance)
+* 🏷️ Category overlap
+* ⭐ Rating similarity
+* 🔥 Popularity (review count)
+* 🟢 Business status (open/closed)
+
+Custom scoring function ranks candidates and returns the most relevant results.
 
 ---
 
-## Pokretanje
+## 📊 Data
 
-### Preduvjeti
-- Docker Desktop
-- Docker Compose v2
+| Table      | Records    |
+| ---------- | ---------- |
+| businesses | 150,346    |
+| users      | 1,987,897  |
+| reviews    | 6,990,280  |
+| tips       | 908,915    |
+| checkins   | 131,930    |
+| **Total**  | **~10.2M** |
 
-### Start (Docker)
+---
+
+## 🧪 Running the Project
+
+### ▶️ Local Development
+
+```powershell
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# Business Service
+cd services/business-service
+uvicorn app.main:app --port 8001 --reload
+
+# Recommendation Service
+cd services/recommendation-service
+uvicorn app.main:app --port 8002 --reload
+
+# API Gateway
+cd services/api-gateway
+uvicorn app.main:app --port 8000 --reload
+
+# Frontend
+cd services/frontend
+npm run dev
+```
+
+Frontend runs at:
+http://localhost:3000
+
+---
+
+### 🐳 Docker Setup
 
 ```bash
 docker compose up --build
 ```
 
-### Lokalno pokretanje (development)
+After startup:
 
-```bash
-# Aktivacija virtualenv
-.\venv\Scripts\Activate.ps1
-
-# business-service
-cd services/business-service
-python -m uvicorn app.main:app --reload --port 8001
-
-# ingestion-service
-cd services/ingestion-service
-python -m uvicorn app.main:app --reload --port 8003
-```
+| URL                             | Service           |
+| ------------------------------- | ----------------- |
+| http://localhost                | Nginx → Frontend  |
+| http://localhost/api/businesses | API               |
+| http://localhost:3000           | Frontend (direct) |
 
 ---
 
-## API endpointovi
+## 🧰 Tech Stack
 
-### Javni (kroz Nginx + api-gateway)
-
-```
-GET  /api/businesses                          # lista poslovnih objekata
-GET  /api/businesses?city=Phoenix&min_stars=4
-GET  /api/businesses/{id}                     # detalji jednog objekta
-GET  /api/recommendations/{id}                # preporuke za objekt
-GET  /api/recommendations/{id}?limit=5
-```
-
-### business-service (port 8001)
-
-```
-GET  /businesses
-GET  /businesses?city=Phoenix&min_stars=4&page=1&limit=20
-GET  /businesses/{id}
-```
-
-### recommendation-service (port 8002)
-
-```
-GET  /recommendations/{business_id}
-GET  /recommendations/{business_id}?limit=10
-```
-
-### ingestion-service (port 8003)
-
-```
-POST /ingest/all           # pokretanje ingestion svih dataseta (background)
-POST /ingest/businesses
-POST /ingest/reviews
-POST /ingest/users
-POST /ingest/tips
-POST /ingest/checkins
-```
+| Layer      | Technology                 |
+| ---------- | -------------------------- |
+| Frontend   | Next.js, React, TypeScript |
+| Backend    | FastAPI, Python            |
+| Database   | PostgreSQL                 |
+| ORM        | SQLAlchemy                 |
+| RPC        | gRPC                       |
+| Proxy      | Nginx                      |
+| Containers | Docker                     |
 
 ---
 
-## Testovi
+## 🛠️ Future Improvements
 
-Testovi se nalaze u `tests/` mapi svakog servisa i koriste `pytest` + `unittest.mock`. Downstream ovisnosti (DB, gRPC, HTTP) su u potpunosti mockirani.
-
-```bash
-# business-service
-cd services/business-service
-python -m pytest tests/ -v
-
-# recommendation-service
-cd services/recommendation-service
-python -m pytest tests/ -v
-
-# ingestion-service
-cd services/ingestion-service
-python -m pytest tests/ -v
-
-# api-gateway
-cd services/api-gateway
-python -m pytest tests/ -v
-```
+* JWT authentication (API Gateway)
+* Full-text search (PostgreSQL)
+* Redis caching
+* Map integration (Leaflet / Mapbox)
+* CI/CD pipeline (GitHub Actions)
 
 ---
 
-## Logging
+## 📡 API Endpoints
 
-Svaki servis koristi centralni `get_logger(name)` iz `shared/utils/logger.py`. Logovi idu na stdout u formatu:
-
-```
-2026-04-15 16:40:50 | INFO | ingestion-service | Starting ingestion: tips
-2026-04-15 16:41:56 | INFO | ingestion-service | Finished tips — total records: 908915
-```
+All external requests go through the **API Gateway** (`:8000`).
 
 ---
 
-## Tehnički stack
+### 🏢 Business Endpoints
 
-| Komponenta | Tehnologija |
-|---|---|
-| Web framework | FastAPI 0.111 |
-| ASGI server | Uvicorn |
-| ORM | SQLAlchemy 2.0 |
-| Baza | PostgreSQL 15 |
-| gRPC | grpcio + grpcio-tools |
-| HTTP klijent | httpx (async) |
-| Reverse proxy | Nginx 1.25 (Alpine) |
-| Konfiguracija | pydantic-settings |
-| Testovi | pytest + unittest.mock |
-| Kontejnerizacija | Docker + Docker Compose v2 |
+| Method | Endpoint                   | Description                                                      |
+| ------ | -------------------------- | ---------------------------------------------------------------- |
+| `GET`  | `/businesses`              | Search businesses (`?city=`, `?min_stars=`, `?page=`, `?limit=`) |
+| `GET`  | `/businesses/{id}`         | Get business details by ID                                       |
+| `GET`  | `/businesses/{id}/reviews` | Get paginated reviews (`?page=`, `?limit=`)                      |
+
+---
+
+### ⭐ Recommendation Endpoints
+
+| Method | Endpoint                | Description                        |
+| ------ | ----------------------- | ---------------------------------- |
+| `GET`  | `/recommendations/{id}` | Get similar businesses (`?limit=`) |
+
+---
+
+### ❤️ Health Check
+
+| Method | Endpoint  | Description               |
+| ------ | --------- | ------------------------- |
+| `GET`  | `/health` | API Gateway health status |
+
+---
+
+## 📌 Notes
+
+* Built as a **production-style system design project**
+* Focus on:
+
+  * scalability
+  * service isolation
+  * clean architecture
+* Dataset: **Yelp Open Dataset (~10M+ records)**
+
+---
+
+## 👤 Author
+
+**Stjepan Velc**
+
+Backend & System Design focused developer
+
+**Tech stack:**
+Python • FastAPI • Microservices • PostgreSQL
+

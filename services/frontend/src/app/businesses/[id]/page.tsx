@@ -1,24 +1,37 @@
-import { fetchBusiness, fetchRecommendations } from '@/lib/api';
+import { fetchBusiness, fetchRecommendations, fetchReviews } from '@/lib/api';
 import BusinessCard from '@/components/BusinessCard';
+import ReviewText from '@/components/ReviewText';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
+function avatarClass(userId: string): string {
+    const code = (userId.charCodeAt(0) || 0) + (userId.charCodeAt(1) || 0);
+    return `avatar-c${code % 6}`;
+}
+
+function avatarInitial(userId: string): string {
+    return userId ? userId[0].toUpperCase() : '?';
+}
+
+const ONE_YEAR_AGO = new Date();
+ONE_YEAR_AGO.setFullYear(ONE_YEAR_AGO.getFullYear() - 1);
+
 interface Props {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 export default async function BusinessPage({ params }: Props) {
-    const [business, recommendations] = await Promise.all([
-        fetchBusiness(params.id),
-        fetchRecommendations(params.id, 6),
+    const { id } = await params;
+    const [business, recommendations, reviews] = await Promise.all([
+        fetchBusiness(id),
+        fetchRecommendations(id, 6),
+        fetchReviews(id, 1, 20),
     ]);
 
     if (!business) notFound();
 
     const categories = business.categories?.split(', ').filter(Boolean) ?? [];
-    const full = Math.floor(business.stars);
-    const half = business.stars % 1 >= 0.5;
-    const empty = 5 - full - (half ? 1 : 0);
+    const ratingCls = business.stars >= 4.5 ? 'rating-high' : business.stars >= 3.5 ? 'rating-mid' : 'rating-low';
 
     return (
         <div className="detail-layout">
@@ -29,11 +42,10 @@ export default async function BusinessPage({ params }: Props) {
                 <h1 className="detail-name">{business.name}</h1>
 
                 <div className="detail-stars">
-                    {'★'.repeat(full)}
-                    {half ? '½' : ''}
-                    {'☆'.repeat(empty)}
-                    <span className="stars-value"> {business.stars}</span>
-                    <span className="detail-reviews"> · {business.review_count.toLocaleString()} reviews</span>
+                    <span className={`rating-badge rating-badge-lg ${ratingCls}`}>
+                        ★ {business.stars.toFixed(1)}
+                    </span>
+                    <span className="detail-reviews">{business.review_count.toLocaleString()} reviews</span>
                 </div>
 
                 <span className={`status-badge ${business.is_open ? 'open' : 'closed'}`}>
@@ -66,13 +78,56 @@ export default async function BusinessPage({ params }: Props) {
                         </span>
                     </div>
                 </div>
+
+                {/* ── Reviews ──────────────────────────────────────────────── */}
+                <section className="reviews-section">
+                    <h2 className="reviews-title">Reviews</h2>
+                    {reviews.length === 0 ? (
+                        <p className="no-reviews">No reviews yet.</p>
+                    ) : (
+                        <div className="reviews-list">
+                            {reviews.map((r) => {
+                                const rc = r.stars >= 4.5 ? 'rating-high' : r.stars >= 3.5 ? 'rating-mid' : 'rating-low';
+                                const dateStr = r.date ? r.date.slice(0, 10) : '';
+                                const isRecent = r.date ? new Date(r.date) >= ONE_YEAR_AGO : false;
+                                const colorCls = avatarClass(r.user_id);
+                                const initial = avatarInitial(r.user_id);
+                                return (
+                                    <div key={r.review_id} className="review-card">
+                                        <div className="review-header">
+                                            <span
+                                                className={`review-avatar ${colorCls}`}
+                                                aria-hidden="true"
+                                            >{initial}</span>
+                                            <span className={`rating-badge ${rc}`}>★ {r.stars.toFixed(1)}</span>
+                                            {isRecent && <span className="review-recent">Recent</span>}
+                                            <span className="review-date">{dateStr}</span>
+                                            <span className="review-votes">
+                                                👍 {r.useful} &nbsp; 😄 {r.funny} &nbsp; 😎 {r.cool}
+                                            </span>
+                                        </div>
+                                        <ReviewText text={r.text} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
             </div>
 
             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
             <aside className="detail-sidebar">
                 <h2 className="sidebar-title">Similar Businesses</h2>
+                <div className="rec-reason">
+                    <p className="rec-reason-label">Similar businesses based on:</p>
+                    <ul className="rec-reason-list">
+                        <li>📍 Geographic proximity</li>
+                        <li>🏷️ Category overlap</li>
+                        <li>⭐ Rating similarity</li>
+                    </ul>
+                </div>
                 {recommendations.length === 0 ? (
-                    <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>No recommendations found.</p>
+                    <p className="no-recs">No recommendations found.</p>
                 ) : (
                     <div className="sidebar-list">
                         {recommendations.map((r) => (

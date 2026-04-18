@@ -19,3 +19,13 @@ async def get_business(business_id: str):
         response = await client.get(f"{settings.business_service_url}/businesses/{business_id}")
         response.raise_for_status()
         return response.json()
+
+
+async def get_reviews(business_id: str, page: int = 1, limit: int = 20):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{settings.business_service_url}/businesses/{business_id}/reviews",
+            params={"page": page, "limit": limit},
+        )
+        response.raise_for_status()
+        return response.json()

@@ -21,10 +21,10 @@ def get_business(business_id: str) -> dict | None:
         raise
 
 
-def list_businesses_in_area(city: str, state: str, limit: int = 500) -> list[dict]:
+def list_businesses_in_area(city: str, state: str, limit: int = 1000) -> list[dict]:
     stub = _get_stub()
     response = stub.ListBusinesses(
-        business_pb2.ListBusinessesRequest(city=city, limit=limit, page=1)
+        business_pb2.ListBusinessesRequest(city=city, state=state, limit=limit, page=1)
     )
     return [_proto_to_dict(b) for b in response.businesses]
 

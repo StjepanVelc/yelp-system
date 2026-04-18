@@ -10,7 +10,8 @@ class ListBusinessesRequest(Message):
     min_stars: float
     page: int
     limit: int
-    def __init__(self, *, city: str = ..., min_stars: float = ..., page: int = ..., limit: int = ...) -> None: ...
+    state: str
+    def __init__(self, *, city: str = ..., min_stars: float = ..., page: int = ..., limit: int = ..., state: str = ...) -> None: ...
 
 class BusinessResponse(Message):
     id: str
