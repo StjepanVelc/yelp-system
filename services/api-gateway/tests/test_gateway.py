@@ -87,6 +87,13 @@ class TestBusinessGatewayRoutes:
                 response = client.get("/api/businesses?city=Phoenix&min_stars=4.0", headers=auth_headers)
         assert response.status_code == 200
 
+    def test_list_cities_ok(self, client, auth_headers):
+        with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
+            with patch("app.clients.business_client.get_cities", new=AsyncMock(return_value=["Philadelphia", "Tucson"])):
+                response = client.get("/api/businesses/cities", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json() == ["Philadelphia", "Tucson"]
+
     def test_get_business_by_id_ok(self, client, auth_headers):
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
             with patch("app.clients.business_client.get_business", new=AsyncMock(return_value=BUSINESS_DETAIL)):
@@ -218,6 +225,20 @@ class TestBusinessClient:
         with patch("httpx.AsyncClient", return_value=mock_client):
             result = await business_client.get_business("biz-001")
         assert result["id"] == "biz-001"
+
+    @pytest.mark.anyio
+    async def test_get_cities(self):
+        from app.clients import business_client
+
+        mock_resp = make_mock_response(["Philadelphia", "Tucson"])
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            result = await business_client.get_cities()
+        assert result == ["Philadelphia", "Tucson"]
 
 
 # ── recommendation client unit tests ──────────────────────────────────────────

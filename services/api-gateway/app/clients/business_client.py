@@ -14,6 +14,13 @@ async def get_businesses(city=None, min_stars=None, page=1, limit=20):
         return response.json()
 
 
+async def get_cities():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{settings.business_service_url}/businesses/cities")
+        response.raise_for_status()
+        return response.json()
+
+
 async def get_business(business_id: str):
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{settings.business_service_url}/businesses/{business_id}")

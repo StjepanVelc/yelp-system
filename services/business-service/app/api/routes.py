@@ -3,6 +3,7 @@ from app.db.session import SessionLocal
 from app.service.business_service import (
     fetch_businesses,
     fetch_business_by_id,
+    fetch_cities,
     fetch_reviews,
     fetch_user_status,
 )
@@ -35,6 +36,12 @@ def get_businesses(
     results = fetch_businesses(db, city, state, min_stars, page, limit)
     log.debug("Returning %d businesses", len(results))
     return results
+
+
+@router.get("/cities")
+def get_cities_list(db=Depends(get_db)):
+    log.info("GET /businesses/cities")
+    return fetch_cities(db)
 
 
 @router.get("/{business_id}")

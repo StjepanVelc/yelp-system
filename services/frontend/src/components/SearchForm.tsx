@@ -6,9 +6,10 @@ import { useState, useTransition, FormEvent } from 'react';
 interface Props {
     initialCity?: string;
     initialMinStars?: string;
+    cityOptions?: string[];
 }
 
-export default function SearchForm({ initialCity = '', initialMinStars = '' }: Props) {
+export default function SearchForm({ initialCity = '', initialMinStars = '', cityOptions = [] }: Props) {
     const router = useRouter();
     const [city, setCity] = useState(initialCity);
     const [minStars, setMinStars] = useState(initialMinStars);
@@ -30,6 +31,7 @@ export default function SearchForm({ initialCity = '', initialMinStars = '' }: P
                 id="city"
                 name="city"
                 type="text"
+                list="city-options"
                 placeholder="City (e.g. Philadelphia, Tucson…)"
                 value={city}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCity(e.target.value)}
@@ -37,6 +39,11 @@ export default function SearchForm({ initialCity = '', initialMinStars = '' }: P
                 disabled={isPending}
                 autoComplete="off"
             />
+            <datalist id="city-options">
+                {cityOptions.map((optionCity) => (
+                    <option key={optionCity} value={optionCity} />
+                ))}
+            </datalist>
             <select
                 id="minStars"
                 name="minStars"

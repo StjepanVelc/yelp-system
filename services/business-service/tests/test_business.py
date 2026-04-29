@@ -86,6 +86,19 @@ class TestBusinessRepository:
         result = get_business_by_id(session, "nonexistent")
         assert result is None
 
+    def test_get_cities_returns_list(self):
+        from app.repository.business_repository import get_cities
+
+        mock_row_1 = MagicMock()
+        mock_row_1._mapping = {"city": "Philadelphia"}
+        mock_row_2 = MagicMock()
+        mock_row_2._mapping = {"city": "Tucson"}
+        session = MagicMock()
+        session.execute.return_value = [mock_row_1, mock_row_2]
+
+        result = get_cities(session)
+        assert result == ["Philadelphia", "Tucson"]
+
     def test_get_user_status_found(self):
         from app.repository.business_repository import get_user_status
 
@@ -139,6 +152,15 @@ class TestBusinessService:
             result = fetch_business_by_id(session, "missing")
             assert result is None
 
+    def test_fetch_cities_calls_repository(self):
+        from app.service.business_service import fetch_cities
+
+        with patch("app.service.business_service.get_cities", return_value=["Philadelphia", "Tucson"]) as mock_repo:
+            session = MagicMock()
+            result = fetch_cities(session)
+            mock_repo.assert_called_once_with(session)
+            assert result == ["Philadelphia", "Tucson"]
+
     def test_fetch_user_status_calls_repository(self):
         from app.service.business_service import fetch_user_status
 
@@ -172,6 +194,12 @@ class TestBusinessRoutes:
         with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
             response = client.get("/businesses?city=Phoenix&min_stars=4.0&page=1&limit=5")
         assert response.status_code == 200
+
+    def test_get_cities_ok(self, client):
+        with patch("app.service.business_service.fetch_cities", return_value=["Philadelphia", "Tucson"]):
+            response = client.get("/businesses/cities")
+        assert response.status_code == 200
+        assert response.json() == ["Philadelphia", "Tucson"]
 
     def test_get_business_by_id_ok(self, client):
         with patch("app.service.business_service.fetch_business_by_id", return_value=SAMPLE_BUSINESS):

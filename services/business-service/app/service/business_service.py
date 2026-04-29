@@ -1,6 +1,7 @@
 from app.repository.business_repository import (
     get_businesses,
     get_business_by_id,
+    get_cities,
     get_reviews,
     get_user_status,
 )
@@ -13,6 +14,10 @@ def fetch_businesses(session, city, state, min_stars, page, limit):
 
 def fetch_business_by_id(session, business_id: str):
     return get_business_by_id(session, business_id)
+
+
+def fetch_cities(session):
+    return get_cities(session)
 
 
 def fetch_reviews(session, business_id: str, page: int = 1, limit: int = 20):

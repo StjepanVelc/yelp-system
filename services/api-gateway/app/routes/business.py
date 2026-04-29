@@ -33,6 +33,16 @@ async def list_businesses(
         raise HTTPException(status_code=502, detail="Upstream service error")
 
 
+@router.get("/cities")
+async def list_cities():
+    log.info("GET /businesses/cities")
+    try:
+        return await business_client.get_cities()
+    except Exception as e:
+        log.error("Error proxying GET /businesses/cities: %s", e)
+        raise HTTPException(status_code=502, detail="Upstream service error")
+
+
 @router.get("/{business_id}")
 async def get_business(business_id: str):
     # Yelp IDs are alphanumeric with hyphens/underscores, max 64 chars

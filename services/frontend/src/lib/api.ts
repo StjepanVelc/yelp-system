@@ -64,6 +64,19 @@ export async function fetchBusinesses(params: {
     }
 }
 
+export async function fetchCities(): Promise<string[]> {
+    try {
+        const res = await fetch(`${API_BASE}/businesses/cities`, {
+            cache: 'no-store',
+            headers: buildAuthHeaders(),
+        });
+        if (!res.ok) return [];
+        return res.json();
+    } catch (_e) {
+        return [];
+    }
+}
+
 export async function fetchBusiness(id: string): Promise<Business | null> {
     try {
         const res = await fetch(`${API_BASE}/businesses/${id}`, { cache: 'no-store', headers: buildAuthHeaders() });

@@ -1,4 +1,4 @@
-﻿import { fetchBusinesses } from '@/lib/api';
+﻿import { fetchBusinesses, fetchCities } from '@/lib/api';
 import SearchForm from '@/components/SearchForm';
 import BusinessCard from '@/components/BusinessCard';
 
@@ -13,6 +13,7 @@ export default async function HomePage({ searchParams }: Props) {
     const page = sp.page ? parseInt(sp.page) : 1;
 
     const hasFilter = !!(city || (minStars != null && sp.min_stars));
+    const cityOptions = await fetchCities();
     const businesses = hasFilter
         ? await fetchBusinesses({ city, min_stars: minStars, page, limit: 20 })
         : [];
@@ -34,7 +35,11 @@ export default async function HomePage({ searchParams }: Props) {
                     </p>
                     <p className="hero-powered">Powered by microservices &middot; PostgreSQL &middot; gRPC</p>
                     <div className="hero-search">
-                        <SearchForm initialCity={city} initialMinStars={sp.min_stars ?? ''} />
+                        <SearchForm
+                            initialCity={city}
+                            initialMinStars={sp.min_stars ?? ''}
+                            cityOptions={cityOptions}
+                        />
                     </div>
                     <div className="hero-stats">
                         <div className="hero-stat"><span className="stat-num">150K+</span><span className="stat-label">Businesses</span></div>

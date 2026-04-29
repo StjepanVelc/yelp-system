@@ -31,6 +31,21 @@ def get_businesses(session, city=None, state=None, min_stars=None, limit=20, off
     return rows
 
 
+def get_cities(session):
+    log.debug("Fetching distinct cities")
+    result = session.execute(
+        text(
+            "SELECT DISTINCT TRIM(city) AS city "
+            "FROM businesses "
+            "WHERE city IS NOT NULL AND TRIM(city) <> '' "
+            "ORDER BY city ASC"
+        )
+    )
+    cities = [str(row._mapping["city"]) for row in result]
+    log.debug("Found %d cities", len(cities))
+    return cities
+
+
 def get_business_by_id(session, business_id: str):
     log.debug("Fetching business by id: %s", business_id)
     result = session.execute(
