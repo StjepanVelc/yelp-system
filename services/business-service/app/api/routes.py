@@ -1,10 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.db.session import SessionLocal
-from app.service.business_service import fetch_businesses, fetch_business_by_id, fetch_reviews
+from app.service.business_service import (
+    fetch_businesses,
+    fetch_business_by_id,
+    fetch_reviews,
+    fetch_user_status,
+)
 from app.core.logger import get_logger
 from typing import Optional
 
 router = APIRouter()
+user_router = APIRouter()
 log = get_logger("business-service.routes")
 
 
@@ -50,3 +56,9 @@ def get_business_reviews(
 ):
     log.info("GET /businesses/%s/reviews page=%d limit=%d", business_id, page, limit)
     return fetch_reviews(db, business_id, page=page, limit=limit)
+
+
+@user_router.get("/users/{user_id}/status")
+def get_user_status(user_id: str, db=Depends(get_db)):
+    log.info("GET /users/%s/status", user_id)
+    return fetch_user_status(db, user_id)

@@ -1,7 +1,7 @@
 import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import router
+from app.api.routes import router, user_router
 from app.db.session import engine
 from app.models.business import Base
 from app.core.logger import get_logger
@@ -32,6 +32,7 @@ def startup():
 
 
 app.include_router(router, prefix="/businesses")
+app.include_router(user_router)
 
 
 @app.get("/")

@@ -59,3 +59,27 @@ def get_reviews(session, business_id: str, limit: int = 20, offset: int = 0):
     log.debug("Found %d reviews", len(rows))
     return rows
 
+
+def get_user_status(session, user_id: str):
+    log.debug("Fetching user status for user_id=%s", user_id)
+    result = session.execute(
+        text("SELECT user_id FROM users WHERE user_id = :user_id"),
+        {"user_id": user_id},
+    )
+    row = result.fetchone()
+
+    if row:
+        return {
+            "user_id": row._mapping["user_id"],
+            "active": True,
+            "deleted": False,
+            "deleted_at": None,
+        }
+
+    return {
+        "user_id": user_id,
+        "active": False,
+        "deleted": True,
+        "deleted_at": "not-found",
+    }
+

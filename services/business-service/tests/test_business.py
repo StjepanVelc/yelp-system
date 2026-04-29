@@ -86,6 +86,30 @@ class TestBusinessRepository:
         result = get_business_by_id(session, "nonexistent")
         assert result is None
 
+    def test_get_user_status_found(self):
+        from app.repository.business_repository import get_user_status
+
+        mock_row = MagicMock()
+        mock_row._mapping = {"user_id": "user-123"}
+        session = MagicMock()
+        session.execute.return_value.fetchone.return_value = mock_row
+
+        result = get_user_status(session, "user-123")
+        assert result["user_id"] == "user-123"
+        assert result["active"] is True
+        assert result["deleted"] is False
+
+    def test_get_user_status_not_found(self):
+        from app.repository.business_repository import get_user_status
+
+        session = MagicMock()
+        session.execute.return_value.fetchone.return_value = None
+
+        result = get_user_status(session, "missing-user")
+        assert result["user_id"] == "missing-user"
+        assert result["active"] is False
+        assert result["deleted"] is True
+
 
 # ── service unit tests ─────────────────────────────────────────────────────────
 
@@ -114,6 +138,18 @@ class TestBusinessService:
             session = MagicMock()
             result = fetch_business_by_id(session, "missing")
             assert result is None
+
+    def test_fetch_user_status_calls_repository(self):
+        from app.service.business_service import fetch_user_status
+
+        with patch(
+            "app.service.business_service.get_user_status",
+            return_value={"user_id": "user-123", "active": True, "deleted": False, "deleted_at": None},
+        ) as mock_repo:
+            session = MagicMock()
+            result = fetch_user_status(session, "user-123")
+            mock_repo.assert_called_once_with(session, "user-123")
+            assert result["active"] is True
 
 
 # ── API route integration tests ────────────────────────────────────────────────
@@ -154,3 +190,17 @@ class TestBusinessRoutes:
             # page=3, limit=20 → offset=40
             call_kwargs = mock_svc.call_args
             assert call_kwargs is not None
+
+    def test_get_user_status_active(self, client):
+        expected = {"user_id": "user-123", "active": True, "deleted": False, "deleted_at": None}
+        with patch("app.service.business_service.fetch_user_status", return_value=expected):
+            response = client.get("/users/user-123/status")
+        assert response.status_code == 200
+        assert response.json()["active"] is True
+
+    def test_get_user_status_deleted(self, client):
+        expected = {"user_id": "missing-user", "active": False, "deleted": True, "deleted_at": "not-found"}
+        with patch("app.service.business_service.fetch_user_status", return_value=expected):
+            response = client.get("/users/missing-user/status")
+        assert response.status_code == 200
+        assert response.json()["deleted"] is True
