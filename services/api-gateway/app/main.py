@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import business, recommendation
@@ -5,7 +7,15 @@ from app.logger import get_logger
 import os
 
 log = get_logger("api-gateway")
-app = FastAPI(title="API Gateway", version="1.0.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    log.info("API Gateway starting up")
+    yield
+
+
+app = FastAPI(title="API Gateway", version="1.0.0", lifespan=lifespan)
 
 _origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
@@ -19,11 +29,6 @@ app.include_router(business.router, prefix="/businesses", tags=["businesses"])
 app.include_router(recommendation.router, prefix="/recommendations", tags=["recommendations"])
 app.include_router(business.router, prefix="/api/businesses", tags=["businesses"])
 app.include_router(recommendation.router, prefix="/api/recommendations", tags=["recommendations"])
-
-
-@app.on_event("startup")
-def startup():
-    log.info("API Gateway starting up")
 
 
 @app.get("/")

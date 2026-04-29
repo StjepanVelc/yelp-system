@@ -5,3 +5,4 @@ psycopg2-binary==2.9.9
 pydantic-settings==2.2.1
 grpcio==1.64.0
 grpcio-tools==1.64.0
+alembic==1.13.1

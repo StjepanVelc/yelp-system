@@ -27,6 +27,8 @@ export default function SearchForm({ initialCity = '', initialMinStars = '' }: P
     return (
         <form onSubmit={handleSubmit} className="search-form">
             <input
+                id="city"
+                name="city"
                 type="text"
                 placeholder="City (e.g. Philadelphia, Tucson…)"
                 value={city}
@@ -36,6 +38,8 @@ export default function SearchForm({ initialCity = '', initialMinStars = '' }: P
                 autoComplete="off"
             />
             <select
+                id="minStars"
+                name="minStars"
                 value={minStars}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMinStars(e.target.value)}
                 className="search-select"
