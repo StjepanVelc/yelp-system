@@ -1,9 +1,13 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.auth import require_roles
 from app.clients import recommendation_client
+from app.config import settings
 from app.logger import get_logger
 import re
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_roles(settings.recommendation_required_roles.split(",")))]
+)
 log = get_logger("api-gateway.recommendation")
 
 

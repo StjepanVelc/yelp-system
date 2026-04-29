@@ -17,6 +17,8 @@ app.add_middleware(
 
 app.include_router(business.router, prefix="/businesses", tags=["businesses"])
 app.include_router(recommendation.router, prefix="/recommendations", tags=["recommendations"])
+app.include_router(business.router, prefix="/api/businesses", tags=["businesses"])
+app.include_router(recommendation.router, prefix="/api/recommendations", tags=["recommendations"])
 
 
 @app.on_event("startup")

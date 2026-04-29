@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
+from app.auth import require_roles
 from app.clients import business_client
+from app.config import settings
 from app.logger import get_logger
 import re
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_roles(settings.business_required_roles.split(",")))]
+)
 log = get_logger("api-gateway.business")
 
 _CITY_RE = re.compile(r"^[A-Za-z\s\-'\.]{1,100}$")
@@ -55,6 +59,4 @@ async def get_business_reviews(
         return await business_client.get_reviews(business_id, page=page, limit=limit)
     except Exception as e:
         log.error("Error proxying GET /businesses/%s/reviews: %s", business_id, e)
-        raise HTTPException(status_code=502, detail="Upstream service error")
-        log.error("Error proxying GET /businesses/%s: %s", business_id, e)
         raise HTTPException(status_code=502, detail="Upstream service error")
