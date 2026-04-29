@@ -33,6 +33,17 @@ services:
       - BUSINESS_SERVICE_URL=http://business-service:8001
       - RECOMMENDATION_SERVICE_URL=http://recommendation-service:8002
       - INGESTION_SERVICE_URL=http://ingestion-service:8003
+      - USER_SERVICE_URL=http://business-service:8001
+      - USER_STATUS_PATH_TEMPLATE=/users/{user_id}/status
+      - USER_STATUS_TIMEOUT_SECONDS=3
+      - JWT_SECRET=dev-secret-change-me
+      - JWT_ALGORITHM=HS256
+      - JWT_ISSUER=yelp-auth
+      - JWT_AUDIENCE=yelp-api
+      - JWT_LEEWAY_SECONDS=5
+      - JWT_ROLES_CLAIM=roles
+      - BUSINESS_REQUIRED_ROLES=business:read
+      - RECOMMENDATION_REQUIRED_ROLES=recommendation:read
       - CORS_ORIGINS=http://localhost:3000,http://localhost,http://frontend:3000
     depends_on:
       business-service:

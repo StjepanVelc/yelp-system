@@ -26,6 +26,23 @@ export interface Business {
 
 const API_BASE = process.env.API_URL ?? 'http://localhost:8000';
 
+function resolveAuthToken(): string | null {
+    const envToken = process.env.NEXT_PUBLIC_API_AUTH_TOKEN ?? process.env.API_AUTH_TOKEN;
+    if (envToken) return envToken;
+
+    if (typeof window !== 'undefined') {
+        return window.localStorage.getItem('api_auth_token');
+    }
+
+    return null;
+}
+
+function buildAuthHeaders(): HeadersInit {
+    const token = resolveAuthToken();
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+}
+
 export async function fetchBusinesses(params: {
     city?: string;
     min_stars?: number;
@@ -39,7 +56,7 @@ export async function fetchBusinesses(params: {
     if (params.limit) url.searchParams.set('limit', String(params.limit));
 
     try {
-        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const res = await fetch(url.toString(), { cache: 'no-store', headers: buildAuthHeaders() });
         if (!res.ok) return [];
         return res.json();
     } catch (_e) {
@@ -49,7 +66,7 @@ export async function fetchBusinesses(params: {
 
 export async function fetchBusiness(id: string): Promise<Business | null> {
     try {
-        const res = await fetch(`${API_BASE}/businesses/${id}`, { cache: 'no-store' });
+        const res = await fetch(`${API_BASE}/businesses/${id}`, { cache: 'no-store', headers: buildAuthHeaders() });
         if (!res.ok) return null;
         return res.json();
     } catch (_e) {
@@ -61,6 +78,7 @@ export async function fetchReviews(id: string, page = 1, limit = 20): Promise<Re
     try {
         const res = await fetch(`${API_BASE}/businesses/${id}/reviews?page=${page}&limit=${limit}`, {
             cache: 'no-store',
+            headers: buildAuthHeaders(),
         });
         if (!res.ok) return [];
         return res.json();
@@ -73,6 +91,7 @@ export async function fetchRecommendations(id: string, limit = 6): Promise<Busin
     try {
         const res = await fetch(`${API_BASE}/recommendations/${id}?limit=${limit}`, {
             cache: 'no-store',
+            headers: buildAuthHeaders(),
         });
         if (!res.ok) return [];
         return res.json();
