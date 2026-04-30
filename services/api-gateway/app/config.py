@@ -1,7 +1,9 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    app_env: str = "development"
     business_service_url: str = "http://localhost:8001"
     recommendation_service_url: str = "http://localhost:8002"
     ingestion_service_url: str = "http://localhost:8003"
@@ -21,6 +23,15 @@ class Settings(BaseSettings):
     user_status_timeout_seconds: float = 3.0
 
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @model_validator(mode="after")
+    def validate_critical_settings(self):
+        if not self.jwt_secret:
+            raise ValueError("JWT_SECRET is required")
+
+        if self.app_env.lower() in {"production", "staging"} and self.jwt_secret == "dev-secret-change-me":
+            raise ValueError("JWT_SECRET contains development placeholder in non-development environment")
+        return self
 
 
 settings = Settings()

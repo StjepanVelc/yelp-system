@@ -17,9 +17,12 @@ services:
     build: ./services/frontend
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - API_URL=http://api-gateway:8000
+      - API_URL=${API_URL:-http://api-gateway:8000}
       - NODE_ENV=production
+      - NEXT_PUBLIC_SHOW_SEARCH_DEBUG=${NEXT_PUBLIC_SHOW_SEARCH_DEBUG:-0}
     depends_on:
       api-gateway:
         condition: service_healthy
@@ -29,22 +32,24 @@ services:
     build: ./services/api-gateway
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - BUSINESS_SERVICE_URL=http://business-service:8001
-      - RECOMMENDATION_SERVICE_URL=http://recommendation-service:8002
-      - INGESTION_SERVICE_URL=http://ingestion-service:8003
-      - USER_SERVICE_URL=http://business-service:8001
-      - USER_STATUS_PATH_TEMPLATE=/users/{user_id}/status
-      - USER_STATUS_TIMEOUT_SECONDS=3
-      - JWT_SECRET=dev-secret-change-me
-      - JWT_ALGORITHM=HS256
-      - JWT_ISSUER=yelp-auth
-      - JWT_AUDIENCE=yelp-api
-      - JWT_LEEWAY_SECONDS=5
-      - JWT_ROLES_CLAIM=roles
-      - BUSINESS_REQUIRED_ROLES=business:read
-      - RECOMMENDATION_REQUIRED_ROLES=recommendation:read
-      - CORS_ORIGINS=http://localhost:3000,http://localhost,http://frontend:3000
+      - BUSINESS_SERVICE_URL=${BUSINESS_SERVICE_URL:-http://business-service:8001}
+      - RECOMMENDATION_SERVICE_URL=${RECOMMENDATION_SERVICE_URL:-http://recommendation-service:8002}
+      - INGESTION_SERVICE_URL=${INGESTION_SERVICE_URL:-http://ingestion-service:8003}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://business-service:8001}
+      - USER_STATUS_PATH_TEMPLATE=${USER_STATUS_PATH_TEMPLATE:-/users/{user_id}/status}
+      - USER_STATUS_TIMEOUT_SECONDS=${USER_STATUS_TIMEOUT_SECONDS:-3}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-me}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_ISSUER=${JWT_ISSUER:-yelp-auth}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-yelp-api}
+      - JWT_LEEWAY_SECONDS=${JWT_LEEWAY_SECONDS:-5}
+      - JWT_ROLES_CLAIM=${JWT_ROLES_CLAIM:-roles}
+      - BUSINESS_REQUIRED_ROLES=${BUSINESS_REQUIRED_ROLES:-business:read}
+      - RECOMMENDATION_REQUIRED_ROLES=${RECOMMENDATION_REQUIRED_ROLES:-recommendation:read}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost,http://frontend:3000}
     depends_on:
       business-service:
         condition: service_healthy
@@ -63,9 +68,11 @@ services:
     ports:
       - "8001:8001"
       - "50051:50051"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
-      - CORS_ORIGINS=http://localhost:8000,http://api-gateway:8000
+      - DATABASE_URL=${BUSINESS_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
     depends_on:
       db:
         condition: service_healthy
@@ -81,10 +88,12 @@ services:
     build: ./services/recommendation-service
     ports:
       - "8002:8002"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
-      - BUSINESS_SERVICE_GRPC=business-service:50051
-      - CORS_ORIGINS=http://localhost:8000,http://api-gateway:8000
+      - DATABASE_URL=${RECOMMENDATION_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - BUSINESS_SERVICE_GRPC=${BUSINESS_SERVICE_GRPC:-business-service:50051}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
     depends_on:
       business-service:
         condition: service_healthy
@@ -102,9 +111,11 @@ services:
       - "8003:8003"
     volumes:
       - ./infrastructure/data/raw:/data/raw:ro
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:stipe245gaba@db:5432/yelp
-      - DATA_PATH=/data/raw
+      - DATABASE_URL=${INGESTION_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - DATA_PATH=${DATA_PATH:-/data/raw}
     depends_on:
       db:
         condition: service_healthy
@@ -112,10 +123,12 @@ services:
 
   db:
     image: postgres:15
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: yelp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: stipe245gaba
+      POSTGRES_DB: ${POSTGRES_DB:-yelp}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stipe245gaba}
     ports:
       - "5432:5432"
     volumes:
