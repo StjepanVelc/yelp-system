@@ -7,9 +7,17 @@ from app.repository.business_repository import (
 )
 
 
-def fetch_businesses(session, city, state, min_stars, page, limit):
+def fetch_businesses(session, city, state, min_stars, query, page, limit):
     offset = (page - 1) * limit
-    return get_businesses(session, city=city, state=state, min_stars=min_stars, limit=limit, offset=offset)
+    return get_businesses(
+        session,
+        city=city,
+        state=state,
+        min_stars=min_stars,
+        query=query,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def fetch_business_by_id(session, business_id: str):

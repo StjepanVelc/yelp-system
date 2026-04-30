@@ -132,8 +132,24 @@ class TestBusinessService:
 
         with patch("app.service.business_service.get_businesses", return_value=[SAMPLE_BUSINESS]) as mock_repo:
             session = MagicMock()
-            results = fetch_businesses(session, city="Phoenix", min_stars=4.0, page=1, limit=10)
-            mock_repo.assert_called_once_with(session, city="Phoenix", min_stars=4.0, limit=10, offset=0)
+            results = fetch_businesses(
+                session,
+                city="Phoenix",
+                state=None,
+                min_stars=4.0,
+                query="pizza",
+                page=1,
+                limit=10,
+            )
+            mock_repo.assert_called_once_with(
+                session,
+                city="Phoenix",
+                state=None,
+                min_stars=4.0,
+                query="pizza",
+                limit=10,
+                offset=0,
+            )
             assert results == [SAMPLE_BUSINESS]
 
     def test_fetch_business_by_id_found(self):
@@ -193,6 +209,11 @@ class TestBusinessRoutes:
     def test_get_businesses_with_filters(self, client):
         with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
             response = client.get("/businesses?city=Phoenix&min_stars=4.0&page=1&limit=5")
+        assert response.status_code == 200
+
+    def test_get_businesses_with_query(self, client):
+        with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
+            response = client.get("/businesses?query=pizza+tucson&page=1&limit=5")
         assert response.status_code == 200
 
     def test_get_cities_ok(self, client):

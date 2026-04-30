@@ -1,4 +1,8 @@
+from time import perf_counter
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.db.session import SessionLocal
 from app.service.business_service import (
     fetch_businesses,
@@ -8,7 +12,6 @@ from app.service.business_service import (
     fetch_user_status,
 )
 from app.core.logger import get_logger
-from typing import Optional
 
 router = APIRouter()
 user_router = APIRouter()
@@ -28,13 +31,30 @@ def get_businesses(
     city: Optional[str] = None,
     state: Optional[str] = None,
     min_stars: Optional[float] = None,
+    query: Optional[str] = Query(None, max_length=200),
     page: int = 1,
     limit: int = 20,
     db=Depends(get_db),
 ):
-    log.info("GET /businesses city=%s state=%s min_stars=%s page=%d limit=%d", city, state, min_stars, page, limit)
-    results = fetch_businesses(db, city, state, min_stars, page, limit)
-    log.debug("Returning %d businesses", len(results))
+    started = perf_counter()
+    log.info(
+        "GET /businesses city=%s state=%s min_stars=%s query=%s page=%d limit=%d",
+        city,
+        state,
+        min_stars,
+        query,
+        page,
+        limit,
+    )
+    results = fetch_businesses(db, city, state, min_stars, query, page, limit)
+    elapsed_ms = (perf_counter() - started) * 1000
+    log.info(
+        "search_metrics latency_ms=%.2f result_count=%d zero_results=%s has_query=%s",
+        elapsed_ms,
+        len(results),
+        len(results) == 0,
+        bool(query),
+    )
     return results
 
 
