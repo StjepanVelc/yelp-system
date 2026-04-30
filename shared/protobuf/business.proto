@@ -17,6 +17,7 @@ message ListBusinessesRequest {
   int32 page = 3;
   int32 limit = 4;
   string state = 5;
+  string search_query = 6;
 }
 
 message BusinessResponse {

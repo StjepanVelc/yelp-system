@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x62usiness.proto\x12\x04yelp\")\n\x12GetBusinessRequest\x12\x13\n\x0b\x62usiness_id\x18\x01 \x01(\t\"d\n\x15ListBusinessesRequest\x12\x0c\n\x04\x63ity\x18\x01 \x01(\t\x12\x11\n\tmin_stars\x18\x02 \x01(\x02\x12\x0c\n\x04page\x18\x03 \x01(\x05\x12\r\n\x05limit\x18\x04 \x01(\x05\x12\r\n\x05state\x18\x05 \x01(\t\"\xde\x01\n\x10\x42usinessResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x63ity\x18\x03 \x01(\t\x12\r\n\x05state\x18\x04 \x01(\t\x12\r\n\x05stars\x18\x05 \x01(\x02\x12\x14\n\x0creview_count\x18\x06 \x01(\x05\x12\x0f\n\x07is_open\x18\x07 \x01(\x08\x12\x12\n\ncategories\x18\x08 \x01(\t\x12\x10\n\x08latitude\x18\t \x01(\x02\x12\x11\n\tlongitude\x18\n \x01(\x02\x12\x0f\n\x07\x61\x64\x64ress\x18\x0b \x01(\t\x12\x13\n\x0bpostal_code\x18\x0c \x01(\t\"D\n\x16ListBusinessesResponse\x12*\n\nbusinesses\x18\x01 \x03(\x0b\x32\x16.yelp.BusinessResponse2\x9f\x01\n\x0f\x42usinessService\x12?\n\x0bGetBusiness\x12\x18.yelp.GetBusinessRequest\x1a\x16.yelp.BusinessResponse\x12K\n\x0eListBusinesses\x12\x1b.yelp.ListBusinessesRequest\x1a\x1c.yelp.ListBusinessesResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x62usiness.proto\x12\x04yelp\")\n\x12GetBusinessRequest\x12\x13\n\x0b\x62usiness_id\x18\x01 \x01(\t\"z\n\x15ListBusinessesRequest\x12\x0c\n\x04\x63ity\x18\x01 \x01(\t\x12\x11\n\tmin_stars\x18\x02 \x01(\x02\x12\x0c\n\x04page\x18\x03 \x01(\x05\x12\r\n\x05limit\x18\x04 \x01(\x05\x12\r\n\x05state\x18\x05 \x01(\t\x12\x14\n\x0csearch_query\x18\x06 \x01(\t\"\xde\x01\n\x10\x42usinessResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x63ity\x18\x03 \x01(\t\x12\r\n\x05state\x18\x04 \x01(\t\x12\r\n\x05stars\x18\x05 \x01(\x02\x12\x14\n\x0creview_count\x18\x06 \x01(\x05\x12\x0f\n\x07is_open\x18\x07 \x01(\x08\x12\x12\n\ncategories\x18\x08 \x01(\t\x12\x10\n\x08latitude\x18\t \x01(\x02\x12\x11\n\tlongitude\x18\n \x01(\x02\x12\x0f\n\x07\x61\x64\x64ress\x18\x0b \x01(\t\x12\x13\n\x0bpostal_code\x18\x0c \x01(\t\"D\n\x16ListBusinessesResponse\x12*\n\nbusinesses\x18\x01 \x03(\x0b\x32\x16.yelp.BusinessResponse2\x9f\x01\n\x0f\x42usinessService\x12?\n\x0bGetBusiness\x12\x18.yelp.GetBusinessRequest\x1a\x16.yelp.BusinessResponse\x12K\n\x0eListBusinesses\x12\x1b.yelp.ListBusinessesRequest\x1a\x1c.yelp.ListBusinessesResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,11 +34,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETBUSINESSREQUEST']._serialized_start=24
   _globals['_GETBUSINESSREQUEST']._serialized_end=65
   _globals['_LISTBUSINESSESREQUEST']._serialized_start=67
-  _globals['_LISTBUSINESSESREQUEST']._serialized_end=167
-  _globals['_BUSINESSRESPONSE']._serialized_start=170
-  _globals['_BUSINESSRESPONSE']._serialized_end=392
-  _globals['_LISTBUSINESSESRESPONSE']._serialized_start=394
-  _globals['_LISTBUSINESSESRESPONSE']._serialized_end=462
-  _globals['_BUSINESSSERVICE']._serialized_start=465
-  _globals['_BUSINESSSERVICE']._serialized_end=624
+  _globals['_LISTBUSINESSESREQUEST']._serialized_end=189
+  _globals['_BUSINESSRESPONSE']._serialized_start=192
+  _globals['_BUSINESSRESPONSE']._serialized_end=414
+  _globals['_LISTBUSINESSESRESPONSE']._serialized_start=416
+  _globals['_LISTBUSINESSESRESPONSE']._serialized_end=484
+  _globals['_BUSINESSSERVICE']._serialized_start=487
+  _globals['_BUSINESSSERVICE']._serialized_end=646
 # @@protoc_insertion_point(module_scope)

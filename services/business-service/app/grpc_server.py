@@ -27,6 +27,7 @@ class BusinessServicer(business_pb2_grpc.BusinessServiceServicer):
                 city=request.city or None,
                 state=request.state or None,
                 min_stars=request.min_stars or None,
+                query=request.search_query or None,
                 limit=request.limit or 20,
                 offset=(max(request.page, 1) - 1) * (request.limit or 20),
             )
