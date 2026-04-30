@@ -18,6 +18,7 @@ _CITY_RE = re.compile(r"^[A-Za-z\s\-'\.]{1,100}$")
 async def list_businesses(
     city: Optional[str] = Query(None, max_length=100),
     min_stars: Optional[float] = Query(None, ge=0.0, le=5.0),
+    query: Optional[str] = Query(None, max_length=200),
     page: int = Query(1, ge=1, le=1000),
     limit: int = Query(20, ge=1, le=100),
 ):
@@ -25,9 +26,11 @@ async def list_businesses(
         city = city.strip()
         if not _CITY_RE.match(city):
             raise HTTPException(status_code=422, detail="Invalid city name")
-    log.info("GET /businesses city=%s min_stars=%s page=%d", city, min_stars, page)
+
+    query = query.strip() if query else None
+    log.info("GET /businesses city=%s min_stars=%s query=%s page=%d", city, min_stars, query, page)
     try:
-        return await business_client.get_businesses(city, min_stars, page, limit)
+        return await business_client.get_businesses(city=city, min_stars=min_stars, query=query, page=page, limit=limit)
     except Exception as e:
         log.error("Error proxying GET /businesses: %s", e)
         raise HTTPException(status_code=502, detail="Upstream service error")

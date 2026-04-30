@@ -2,12 +2,14 @@ import httpx
 from app.config import settings
 
 
-async def get_businesses(city=None, min_stars=None, page=1, limit=20):
+async def get_businesses(city=None, min_stars=None, query=None, page=1, limit=20):
     params = {"page": page, "limit": limit}
     if city:
         params["city"] = city
     if min_stars is not None:
         params["min_stars"] = min_stars
+    if query:
+        params["query"] = query
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{settings.business_service_url}/businesses", params=params)
         response.raise_for_status()
