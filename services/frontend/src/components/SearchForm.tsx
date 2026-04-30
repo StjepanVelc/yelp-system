@@ -7,14 +7,24 @@ interface Props {
     initialCity?: string;
     initialQuery?: string;
     initialMinStars?: string;
+    initialSearchPath?: 'auto' | 'fts' | 'trigram' | 'legacy';
     cityOptions?: string[];
 }
 
-export default function SearchForm({ initialCity = '', initialQuery = '', initialMinStars = '', cityOptions = [] }: Props) {
+const SHOW_SEARCH_DEBUG = process.env.NEXT_PUBLIC_SHOW_SEARCH_DEBUG === '1' || process.env.NODE_ENV !== 'production';
+
+export default function SearchForm({
+    initialCity = '',
+    initialQuery = '',
+    initialMinStars = '',
+    initialSearchPath = 'auto',
+    cityOptions = [],
+}: Props) {
     const router = useRouter();
     const [city, setCity] = useState(initialCity);
     const [query, setQuery] = useState(initialQuery);
     const [minStars, setMinStars] = useState(initialMinStars);
+    const [searchPath, setSearchPath] = useState(initialSearchPath);
     const [isPending, startTransition] = useTransition();
 
     function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -23,6 +33,7 @@ export default function SearchForm({ initialCity = '', initialQuery = '', initia
         if (query.trim()) params.set('q', query.trim());
         if (city.trim()) params.set('city', city.trim());
         if (minStars) params.set('min_stars', minStars);
+        if (searchPath !== 'auto') params.set('search_path', searchPath);
         startTransition(() => {
             router.push(`/?${params.toString()}`);
         });
@@ -73,6 +84,22 @@ export default function SearchForm({ initialCity = '', initialQuery = '', initia
                 <option value="4">★★★★ 4+</option>
                 <option value="4.5">★★★★½ 4.5+</option>
             </select>
+            {SHOW_SEARCH_DEBUG && (
+                <select
+                    id="searchPath"
+                    name="searchPath"
+                    value={searchPath}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSearchPath(e.target.value as 'auto' | 'fts' | 'trigram' | 'legacy')}
+                    className="search-select"
+                    aria-label="Search path"
+                    disabled={isPending}
+                >
+                    <option value="auto">Path: auto</option>
+                    <option value="fts">Path: force fts</option>
+                    <option value="trigram">Path: force trigram</option>
+                    <option value="legacy">Path: force legacy</option>
+                </select>
+            )}
             <button type="submit" className={`search-btn${isPending ? ' search-btn--loading' : ''}`} disabled={isPending}>
                 {isPending ? 'Searching…' : 'Search'}
             </button>

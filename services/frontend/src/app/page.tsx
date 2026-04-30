@@ -3,21 +3,25 @@ import SearchForm from '@/components/SearchForm';
 import BusinessCard from '@/components/BusinessCard';
 
 interface Props {
-    searchParams: Promise<{ city?: string; q?: string; min_stars?: string; page?: string }>;
+    searchParams: Promise<{ city?: string; q?: string; min_stars?: string; search_path?: 'auto' | 'fts' | 'trigram' | 'legacy'; page?: string }>;
 }
+
+const SHOW_SEARCH_DEBUG = process.env.NEXT_PUBLIC_SHOW_SEARCH_DEBUG === '1' || process.env.NODE_ENV !== 'production';
 
 export default async function HomePage({ searchParams }: Props) {
     const sp = await searchParams;
     const city = sp.city ?? '';
     const q = sp.q ?? '';
+    const searchPath = sp.search_path ?? 'auto';
     const minStars = sp.min_stars ? parseFloat(sp.min_stars) : undefined;
     const page = sp.page ? parseInt(sp.page) : 1;
 
     const hasFilter = !!(city || q || (minStars != null && sp.min_stars));
     const cityOptions = await fetchCities();
-    const businesses = hasFilter
-        ? await fetchBusinesses({ city, query: q, min_stars: minStars, page, limit: 20 })
-        : [];
+    const searchResult = hasFilter
+        ? await fetchBusinesses({ city, query: q, search_path: searchPath, min_stars: minStars, page, limit: 20 })
+        : { businesses: [], debug: { path: 'legacy' as const, version: 'legacy', latencyMs: 0 } };
+    const businesses = searchResult.businesses;
 
     return (
         <>
@@ -40,6 +44,7 @@ export default async function HomePage({ searchParams }: Props) {
                             initialCity={city}
                             initialQuery={q}
                             initialMinStars={sp.min_stars ?? ''}
+                            initialSearchPath={searchPath}
                             cityOptions={cityOptions}
                         />
                     </div>
@@ -73,6 +78,18 @@ export default async function HomePage({ searchParams }: Props) {
                     </p>
                 )}
 
+                {hasFilter && SHOW_SEARCH_DEBUG && (
+                    <div className="search-debug-panel">
+                        <strong>Search debug</strong>
+                        <div className="search-debug-grid">
+                            <span>Path: {searchResult.debug.path}</span>
+                            <span>Version: {searchResult.debug.version}</span>
+                            <span>Latency: {searchResult.debug.latencyMs} ms</span>
+                            <span>Requested mode: {searchPath}</span>
+                        </div>
+                    </div>
+                )}
+
                 {hasFilter && businesses.length === 0 && (
                     <div className="empty-state">
                         <div className="empty-icon">🔍</div>
@@ -91,7 +108,7 @@ export default async function HomePage({ searchParams }: Props) {
                     <div className="pagination">
                         {page > 1 && (
                             <a
-                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page - 1}`}
+                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&search_path=${encodeURIComponent(searchPath)}&page=${page - 1}`}
                                 className="btn-page"
                             >
                                 ← Previous
@@ -100,7 +117,7 @@ export default async function HomePage({ searchParams }: Props) {
                         <span className="pagination-page">Page {page}</span>
                         {businesses.length === 20 && (
                             <a
-                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page + 1}`}
+                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&search_path=${encodeURIComponent(searchPath)}&page=${page + 1}`}
                                 className="btn-page"
                             >
                                 Next →

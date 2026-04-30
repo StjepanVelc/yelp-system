@@ -365,6 +365,23 @@ body {
     margin-bottom: 1.25rem;
 }
 
+.search-debug-panel {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    background: rgba(124, 58, 237, 0.08);
+    color: #2b1f57;
+    font-size: 0.86rem;
+}
+
+.search-debug-grid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.3rem;
+}
+
 /* ── Card grid ────────────────────────────────────────────────────────────── */
 .card-grid {
     display: grid;

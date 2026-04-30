@@ -24,6 +24,19 @@ export interface Business {
     longitude: number;
 }
 
+export type SearchPath = 'auto' | 'fts' | 'trigram' | 'legacy';
+
+export interface SearchDebugMeta {
+    path: SearchPath;
+    version: string;
+    latencyMs: number;
+}
+
+export interface FetchBusinessesResponse {
+    businesses: Business[];
+    debug: SearchDebugMeta;
+}
+
 const API_BASE = process.env.API_URL ?? 'http://localhost:8000';
 
 function resolveAuthToken(): string | null {
@@ -46,23 +59,38 @@ function buildAuthHeaders(): HeadersInit {
 export async function fetchBusinesses(params: {
     city?: string;
     query?: string;
+    search_path?: SearchPath;
     min_stars?: number;
     page?: number;
     limit?: number;
-}): Promise<Business[]> {
+}): Promise<FetchBusinessesResponse> {
     const url = new URL(`${API_BASE}/businesses`);
     if (params.city) url.searchParams.set('city', params.city);
     if (params.query) url.searchParams.set('query', params.query);
+    if (params.search_path) url.searchParams.set('search_path', params.search_path);
     if (params.min_stars != null) url.searchParams.set('min_stars', String(params.min_stars));
     if (params.page) url.searchParams.set('page', String(params.page));
     if (params.limit) url.searchParams.set('limit', String(params.limit));
 
+    const defaultDebug: SearchDebugMeta = {
+        path: 'legacy',
+        version: 'legacy',
+        latencyMs: 0,
+    };
+
     try {
         const res = await fetch(url.toString(), { cache: 'no-store', headers: buildAuthHeaders() });
-        if (!res.ok) return [];
-        return res.json();
+        if (!res.ok) return { businesses: [], debug: defaultDebug };
+        return {
+            businesses: await res.json(),
+            debug: {
+                path: (res.headers.get('X-Search-Path') as SearchPath) ?? 'legacy',
+                version: res.headers.get('X-Search-Version') ?? 'legacy',
+                latencyMs: Number(res.headers.get('X-Search-Latency-Ms') ?? '0') || 0,
+            },
+        };
     } catch (_e) {
-        return [];
+        return { businesses: [], debug: defaultDebug };
     }
 }
 
