@@ -414,6 +414,7 @@ Frontend sends `Authorization` automatically if token is available in:
   * clean architecture
 * Dataset: **Yelp Open Dataset (~10M+ records)**
 
+Additional implementation and debugging notes are available in docs/engineering-notes.md.
 ---
 
 ## 👤 Author
