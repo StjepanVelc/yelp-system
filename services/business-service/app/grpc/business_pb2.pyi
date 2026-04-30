@@ -1,10 +1,22 @@
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class SearchPath(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SEARCH_PATH_AUTO: _ClassVar[SearchPath]
+    SEARCH_PATH_FTS: _ClassVar[SearchPath]
+    SEARCH_PATH_TRIGRAM: _ClassVar[SearchPath]
+    SEARCH_PATH_LEGACY: _ClassVar[SearchPath]
+SEARCH_PATH_AUTO: SearchPath
+SEARCH_PATH_FTS: SearchPath
+SEARCH_PATH_TRIGRAM: SearchPath
+SEARCH_PATH_LEGACY: SearchPath
 
 class GetBusinessRequest(_message.Message):
     __slots__ = ("business_id",)
@@ -13,20 +25,22 @@ class GetBusinessRequest(_message.Message):
     def __init__(self, business_id: _Optional[str] = ...) -> None: ...
 
 class ListBusinessesRequest(_message.Message):
-    __slots__ = ("city", "min_stars", "page", "limit", "state", "search_query")
+    __slots__ = ("city", "min_stars", "page", "limit", "state", "search_query", "search_path")
     CITY_FIELD_NUMBER: _ClassVar[int]
     MIN_STARS_FIELD_NUMBER: _ClassVar[int]
     PAGE_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     SEARCH_QUERY_FIELD_NUMBER: _ClassVar[int]
+    SEARCH_PATH_FIELD_NUMBER: _ClassVar[int]
     city: str
     min_stars: float
     page: int
     limit: int
     state: str
     search_query: str
-    def __init__(self, city: _Optional[str] = ..., min_stars: _Optional[float] = ..., page: _Optional[int] = ..., limit: _Optional[int] = ..., state: _Optional[str] = ..., search_query: _Optional[str] = ...) -> None: ...
+    search_path: SearchPath
+    def __init__(self, city: _Optional[str] = ..., min_stars: _Optional[float] = ..., page: _Optional[int] = ..., limit: _Optional[int] = ..., state: _Optional[str] = ..., search_query: _Optional[str] = ..., search_path: _Optional[_Union[SearchPath, str]] = ...) -> None: ...
 
 class BusinessResponse(_message.Message):
     __slots__ = ("id", "name", "city", "state", "stars", "review_count", "is_open", "categories", "latitude", "longitude", "address", "postal_code")

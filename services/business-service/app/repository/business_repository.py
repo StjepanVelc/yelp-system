@@ -4,6 +4,10 @@ from app.core.logger import get_logger
 log = get_logger("business-service.repository")
 
 FTS_FALLBACK_MIN_RESULTS = 5
+SEARCH_PATH_AUTO = "auto"
+SEARCH_PATH_FTS = "fts"
+SEARCH_PATH_TRIGRAM = "trigram"
+SEARCH_PATH_LEGACY = "legacy"
 
 
 def _build_filter_clause(city=None, state=None, min_stars=None):
@@ -119,11 +123,35 @@ def _trigram_fallback_candidates(
     return [dict(row._mapping) for row in result]
 
 
-def get_businesses(session, city=None, state=None, min_stars=None, query=None, limit=20, offset=0):
+def _is_timeout_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "timeout" in message or "statement timeout" in message or "canceling statement" in message
+
+
+def get_businesses(
+    session,
+    city=None,
+    state=None,
+    min_stars=None,
+    query=None,
+    search_path=SEARCH_PATH_AUTO,
+    limit=20,
+    offset=0,
+    include_meta=False,
+):
     filter_clause, params = _build_filter_clause(city=city, state=state, min_stars=min_stars)
     user_query = (query or "").strip()
 
-    if not user_query:
+    meta = {
+        "search_path": SEARCH_PATH_LEGACY,
+        "search_version": "legacy",
+        "fallback_reason": None,
+    }
+
+    def _return(rows):
+        return (rows, meta) if include_meta else rows
+
+    if not user_query or search_path == SEARCH_PATH_LEGACY:
         sql = f"SELECT * FROM businesses {filter_clause} LIMIT :limit OFFSET :offset"
         query_params = dict(params)
         query_params.update({"limit": limit, "offset": offset})
@@ -137,10 +165,33 @@ def get_businesses(session, city=None, state=None, min_stars=None, query=None, l
         )
         result = session.execute(text(sql), query_params)
         rows = [dict(row._mapping) for row in result]
+
+        if search_path == SEARCH_PATH_LEGACY:
+            meta["fallback_reason"] = "forced_legacy"
+        elif not user_query:
+            meta["fallback_reason"] = "no_query"
+
         log.debug("Found %d businesses (legacy mode)", len(rows))
-        return rows
+        return _return(rows)
 
     fetch_size = max(limit + offset, limit, FTS_FALLBACK_MIN_RESULTS)
+
+    if search_path == SEARCH_PATH_TRIGRAM:
+        rows = _trigram_fallback_candidates(
+            session=session,
+            user_query=user_query,
+            filter_clause=filter_clause,
+            params=params,
+            existing_ids=set(),
+            fetch_size=fetch_size,
+        )
+        paged_rows = rows[offset: offset + limit]
+        meta["search_path"] = SEARCH_PATH_TRIGRAM
+        meta["search_version"] = "v2"
+        meta["fallback_reason"] = "forced_trigram"
+        return _return(paged_rows)
+
+    force_fts = search_path == SEARCH_PATH_FTS
 
     try:
         rows = _ranked_fts_candidates(
@@ -161,8 +212,24 @@ def get_businesses(session, city=None, state=None, min_stars=None, query=None, l
             params=params,
             fetch_size=fetch_size,
         )
+    except Exception as exc:
+        fallback_reason = "fts_timeout" if _is_timeout_error(exc) else "fts_error"
+        log.warning("FTS query failed, falling back to legacy search", exc_info=True)
+        sql = f"SELECT * FROM businesses {filter_clause} LIMIT :limit OFFSET :offset"
+        query_params = dict(params)
+        query_params.update({"limit": limit, "offset": offset})
+        result = session.execute(text(sql), query_params)
+        rows = [dict(row._mapping) for row in result]
+        meta["search_path"] = SEARCH_PATH_LEGACY
+        meta["search_version"] = "legacy"
+        meta["fallback_reason"] = fallback_reason
+        return _return(rows)
 
-    if len(rows) < max(FTS_FALLBACK_MIN_RESULTS, limit):
+    used_trigram_fallback = False
+
+    fts_rows_count = len(rows)
+
+    if not force_fts and fts_rows_count < max(FTS_FALLBACK_MIN_RESULTS, limit):
         fallback_rows = _trigram_fallback_candidates(
             session=session,
             user_query=user_query,
@@ -171,9 +238,18 @@ def get_businesses(session, city=None, state=None, min_stars=None, query=None, l
             existing_ids={str(row.get("id")) for row in rows if row.get("id")},
             fetch_size=fetch_size - len(rows),
         )
+        used_trigram_fallback = len(fallback_rows) > 0
         rows.extend(fallback_rows)
 
     paged_rows = rows[offset: offset + limit]
+    if used_trigram_fallback:
+        meta["search_path"] = SEARCH_PATH_TRIGRAM
+        meta["search_version"] = "v2"
+        meta["fallback_reason"] = "fts_zero_results" if fts_rows_count == 0 else "fts_low_results"
+    else:
+        meta["search_path"] = SEARCH_PATH_FTS
+        meta["search_version"] = "v2"
+
     log.debug(
         "FTS query businesses q=%s city=%s state=%s min_stars=%s limit=%d offset=%d returned=%d",
         user_query,
@@ -184,7 +260,7 @@ def get_businesses(session, city=None, state=None, min_stars=None, query=None, l
         offset,
         len(paged_rows),
     )
-    return paged_rows
+    return _return(paged_rows)
 
 
 def get_cities(session):

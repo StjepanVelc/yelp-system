@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from typing import Optional
 from app.auth import require_roles
 from app.clients import business_client
@@ -19,8 +19,10 @@ async def list_businesses(
     city: Optional[str] = Query(None, max_length=100),
     min_stars: Optional[float] = Query(None, ge=0.0, le=5.0),
     query: Optional[str] = Query(None, max_length=200),
+    search_path: str = Query("auto", pattern="^(auto|fts|trigram|legacy)$"),
     page: int = Query(1, ge=1, le=1000),
     limit: int = Query(20, ge=1, le=100),
+    response: Response = ...,
 ):
     if city:
         city = city.strip()
@@ -28,9 +30,28 @@ async def list_businesses(
             raise HTTPException(status_code=422, detail="Invalid city name")
 
     query = query.strip() if query else None
-    log.info("GET /businesses city=%s min_stars=%s query=%s page=%d", city, min_stars, query, page)
+    search_path = search_path.lower()
+    log.info(
+        "GET /businesses city=%s min_stars=%s search_path=%s has_query=%s page=%d",
+        city,
+        min_stars,
+        search_path,
+        bool(query),
+        page,
+    )
     try:
-        return await business_client.get_businesses(city=city, min_stars=min_stars, query=query, page=page, limit=limit)
+        payload, upstream_headers = await business_client.get_businesses(
+            city=city,
+            min_stars=min_stars,
+            query=query,
+            search_path=search_path,
+            page=page,
+            limit=limit,
+        )
+        response.headers["X-Search-Path"] = upstream_headers.get("X-Search-Path", "legacy")
+        response.headers["X-Search-Version"] = upstream_headers.get("X-Search-Version", "legacy")
+        response.headers["X-Search-Latency-Ms"] = upstream_headers.get("X-Search-Latency-Ms", "0")
+        return payload
     except Exception as e:
         log.error("Error proxying GET /businesses: %s", e)
         raise HTTPException(status_code=502, detail="Upstream service error")

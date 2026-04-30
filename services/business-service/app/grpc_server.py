@@ -5,6 +5,22 @@ from app.db.session import SessionLocal
 from app.repository.business_repository import get_businesses, get_business_by_id
 
 
+def _grpc_search_path_to_repo_path(request) -> str:
+    search_path_value = getattr(request, "search_path", 0)
+    try:
+        name = business_pb2.SearchPath.Name(search_path_value)
+    except Exception:
+        return "auto"
+
+    mapping = {
+        "SEARCH_PATH_AUTO": "auto",
+        "SEARCH_PATH_FTS": "fts",
+        "SEARCH_PATH_TRIGRAM": "trigram",
+        "SEARCH_PATH_LEGACY": "legacy",
+    }
+    return mapping.get(name, "auto")
+
+
 class BusinessServicer(business_pb2_grpc.BusinessServiceServicer):
 
     def GetBusiness(self, request, context):
@@ -28,6 +44,7 @@ class BusinessServicer(business_pb2_grpc.BusinessServiceServicer):
                 state=request.state or None,
                 min_stars=request.min_stars or None,
                 query=request.search_query or None,
+                search_path=_grpc_search_path_to_repo_path(request),
                 limit=request.limit or 20,
                 offset=(max(request.page, 1) - 1) * (request.limit or 20),
             )

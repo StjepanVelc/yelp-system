@@ -20,6 +20,21 @@ def fetch_businesses(session, city, state, min_stars, query, page, limit):
     )
 
 
+def fetch_businesses_with_meta(session, city, state, min_stars, query, search_path, page, limit):
+    offset = (page - 1) * limit
+    return get_businesses(
+        session,
+        city=city,
+        state=state,
+        min_stars=min_stars,
+        query=query,
+        search_path=search_path,
+        limit=limit,
+        offset=offset,
+        include_meta=True,
+    )
+
+
 def fetch_business_by_id(session, business_id: str):
     return get_business_by_id(session, business_id)
 

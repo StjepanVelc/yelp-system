@@ -52,6 +52,11 @@ def make_mock_response(data, status_code=200):
     resp = MagicMock(spec=httpx.Response)
     resp.status_code = status_code
     resp.json.return_value = data
+    resp.headers = {
+        "X-Search-Path": "legacy",
+        "X-Search-Version": "legacy",
+        "X-Search-Latency-Ms": "0",
+    }
     resp.raise_for_status = MagicMock()
     if status_code >= 400:
         resp.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -76,23 +81,41 @@ class TestBusinessGatewayRoutes:
 
     def test_list_businesses_ok(self, client, auth_headers):
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
-            with patch("app.clients.business_client.get_businesses", new=AsyncMock(return_value=BUSINESS_LIST)):
+            with patch(
+                "app.clients.business_client.get_businesses",
+                new=AsyncMock(return_value=(BUSINESS_LIST, {"X-Search-Path": "legacy", "X-Search-Version": "legacy", "X-Search-Latency-Ms": "2"})),
+            ):
                 response = client.get("/api/businesses", headers=auth_headers)
         assert response.status_code == 200
         assert len(response.json()) == 2
+        assert response.headers["X-Search-Path"] == "legacy"
 
     def test_list_businesses_with_city_filter(self, client, auth_headers):
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
-            with patch("app.clients.business_client.get_businesses", new=AsyncMock(return_value=BUSINESS_LIST)):
+            with patch(
+                "app.clients.business_client.get_businesses",
+                new=AsyncMock(return_value=(BUSINESS_LIST, {"X-Search-Path": "legacy", "X-Search-Version": "legacy", "X-Search-Latency-Ms": "2"})),
+            ):
                 response = client.get("/api/businesses?city=Phoenix&min_stars=4.0", headers=auth_headers)
         assert response.status_code == 200
 
     def test_list_businesses_with_search_query(self, client, auth_headers):
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
-            with patch("app.clients.business_client.get_businesses", new=AsyncMock(return_value=BUSINESS_LIST)) as mock_get:
-                response = client.get("/api/businesses?query=pizza+tucson&page=1&limit=5", headers=auth_headers)
+            with patch(
+                "app.clients.business_client.get_businesses",
+                new=AsyncMock(return_value=(BUSINESS_LIST, {"X-Search-Path": "fts", "X-Search-Version": "v2", "X-Search-Latency-Ms": "4"})),
+            ) as mock_get:
+                response = client.get("/api/businesses?query=pizza+tucson&search_path=auto&page=1&limit=5", headers=auth_headers)
         assert response.status_code == 200
-        mock_get.assert_awaited_once_with(city=None, min_stars=None, query="pizza tucson", page=1, limit=5)
+        assert response.headers["X-Search-Path"] == "fts"
+        mock_get.assert_awaited_once_with(
+            city=None,
+            min_stars=None,
+            query="pizza tucson",
+            search_path="auto",
+            page=1,
+            limit=5,
+        )
 
     def test_list_cities_ok(self, client, auth_headers):
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
@@ -150,7 +173,10 @@ class TestBusinessGatewayRoutes:
     def test_jwt_valid_token_with_required_role_returns_200(self, client):
         token = make_token(roles=["business:read"])
         with patch("app.clients.user_status_client.get_user_status", new=AsyncMock(return_value={"active": True, "deleted": False})):
-            with patch("app.clients.business_client.get_businesses", new=AsyncMock(return_value=BUSINESS_LIST)):
+            with patch(
+                "app.clients.business_client.get_businesses",
+                new=AsyncMock(return_value=(BUSINESS_LIST, {"X-Search-Path": "legacy", "X-Search-Version": "legacy", "X-Search-Latency-Ms": "2"})),
+            ):
                 response = client.get("/api/businesses", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
 
@@ -216,8 +242,9 @@ class TestBusinessClient:
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await business_client.get_businesses(city="Phoenix", min_stars=4.0, query="pizza")
+            result, headers = await business_client.get_businesses(city="Phoenix", min_stars=4.0, query="pizza", search_path="auto")
         assert result == BUSINESS_LIST
+        assert headers["X-Search-Path"] in {"legacy", "fts", "trigram"}
 
     @pytest.mark.anyio
     async def test_get_business_by_id(self):

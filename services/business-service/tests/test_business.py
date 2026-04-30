@@ -200,41 +200,55 @@ class TestBusinessRoutes:
             yield c
 
     def test_get_businesses_ok(self, client):
-        with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
+        with patch(
+            "app.api.routes.fetch_businesses_with_meta",
+            return_value=([SAMPLE_BUSINESS], {"search_path": "legacy", "search_version": "legacy", "fallback_reason": None}),
+        ):
             response = client.get("/businesses?city=Phoenix")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
+        assert response.headers["X-Search-Path"] == "legacy"
 
     def test_get_businesses_with_filters(self, client):
-        with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
+        with patch(
+            "app.api.routes.fetch_businesses_with_meta",
+            return_value=([SAMPLE_BUSINESS], {"search_path": "legacy", "search_version": "legacy", "fallback_reason": None}),
+        ):
             response = client.get("/businesses?city=Phoenix&min_stars=4.0&page=1&limit=5")
         assert response.status_code == 200
 
     def test_get_businesses_with_query(self, client):
-        with patch("app.service.business_service.fetch_businesses", return_value=[SAMPLE_BUSINESS]):
-            response = client.get("/businesses?query=pizza+tucson&page=1&limit=5")
+        with patch(
+            "app.api.routes.fetch_businesses_with_meta",
+            return_value=([SAMPLE_BUSINESS], {"search_path": "fts", "search_version": "v2", "fallback_reason": None}),
+        ):
+            response = client.get("/businesses?query=pizza+tucson&search_path=auto&page=1&limit=5")
         assert response.status_code == 200
+        assert response.headers["X-Search-Path"] == "fts"
 
     def test_get_cities_ok(self, client):
-        with patch("app.service.business_service.fetch_cities", return_value=["Philadelphia", "Tucson"]):
+        with patch("app.api.routes.fetch_cities", return_value=["Philadelphia", "Tucson"]):
             response = client.get("/businesses/cities")
         assert response.status_code == 200
         assert response.json() == ["Philadelphia", "Tucson"]
 
     def test_get_business_by_id_ok(self, client):
-        with patch("app.service.business_service.fetch_business_by_id", return_value=SAMPLE_BUSINESS):
+        with patch("app.api.routes.fetch_business_by_id", return_value=SAMPLE_BUSINESS):
             response = client.get("/businesses/biz-001")
         assert response.status_code == 200
         assert response.json()["id"] == "biz-001"
 
     def test_get_business_by_id_not_found(self, client):
-        with patch("app.service.business_service.fetch_business_by_id", return_value=None):
+        with patch("app.api.routes.fetch_business_by_id", return_value=None):
             response = client.get("/businesses/does-not-exist")
         assert response.status_code == 404
 
     def test_pagination_offset(self, client):
-        with patch("app.service.business_service.fetch_businesses", return_value=[]) as mock_svc:
+        with patch(
+            "app.api.routes.fetch_businesses_with_meta",
+            return_value=([], {"search_path": "legacy", "search_version": "legacy", "fallback_reason": None}),
+        ) as mock_svc:
             client.get("/businesses?page=3&limit=20")
             # page=3, limit=20 → offset=40
             call_kwargs = mock_svc.call_args
@@ -242,14 +256,14 @@ class TestBusinessRoutes:
 
     def test_get_user_status_active(self, client):
         expected = {"user_id": "user-123", "active": True, "deleted": False, "deleted_at": None}
-        with patch("app.service.business_service.fetch_user_status", return_value=expected):
+        with patch("app.api.routes.fetch_user_status", return_value=expected):
             response = client.get("/users/user-123/status")
         assert response.status_code == 200
         assert response.json()["active"] is True
 
     def test_get_user_status_deleted(self, client):
         expected = {"user_id": "missing-user", "active": False, "deleted": True, "deleted_at": "not-found"}
-        with patch("app.service.business_service.fetch_user_status", return_value=expected):
+        with patch("app.api.routes.fetch_user_status", return_value=expected):
             response = client.get("/users/missing-user/status")
         assert response.status_code == 200
         assert response.json()["deleted"] is True

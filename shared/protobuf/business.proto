@@ -18,6 +18,14 @@ message ListBusinessesRequest {
   int32 limit = 4;
   string state = 5;
   string search_query = 6;
+  SearchPath search_path = 7;
+}
+
+enum SearchPath {
+  SEARCH_PATH_AUTO = 0;
+  SEARCH_PATH_FTS = 1;
+  SEARCH_PATH_TRIGRAM = 2;
+  SEARCH_PATH_LEGACY = 3;
 }
 
 message BusinessResponse {

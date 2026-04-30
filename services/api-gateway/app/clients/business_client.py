@@ -2,7 +2,7 @@ import httpx
 from app.config import settings
 
 
-async def get_businesses(city=None, min_stars=None, query=None, page=1, limit=20):
+async def get_businesses(city=None, min_stars=None, query=None, search_path="auto", page=1, limit=20):
     params = {"page": page, "limit": limit}
     if city:
         params["city"] = city
@@ -10,10 +10,18 @@ async def get_businesses(city=None, min_stars=None, query=None, page=1, limit=20
         params["min_stars"] = min_stars
     if query:
         params["query"] = query
+    if search_path:
+        params["search_path"] = search_path
+
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{settings.business_service_url}/businesses", params=params)
         response.raise_for_status()
-        return response.json()
+        headers = {
+            "X-Search-Path": response.headers.get("X-Search-Path", "legacy"),
+            "X-Search-Version": response.headers.get("X-Search-Version", "legacy"),
+            "X-Search-Latency-Ms": response.headers.get("X-Search-Latency-Ms", "0"),
+        }
+        return response.json(), headers
 
 
 async def get_cities():
