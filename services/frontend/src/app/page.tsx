@@ -3,19 +3,20 @@ import SearchForm from '@/components/SearchForm';
 import BusinessCard from '@/components/BusinessCard';
 
 interface Props {
-    searchParams: Promise<{ city?: string; min_stars?: string; page?: string }>;
+    searchParams: Promise<{ city?: string; q?: string; min_stars?: string; page?: string }>;
 }
 
 export default async function HomePage({ searchParams }: Props) {
     const sp = await searchParams;
     const city = sp.city ?? '';
+    const q = sp.q ?? '';
     const minStars = sp.min_stars ? parseFloat(sp.min_stars) : undefined;
     const page = sp.page ? parseInt(sp.page) : 1;
 
-    const hasFilter = !!(city || (minStars != null && sp.min_stars));
+    const hasFilter = !!(city || q || (minStars != null && sp.min_stars));
     const cityOptions = await fetchCities();
     const businesses = hasFilter
-        ? await fetchBusinesses({ city, min_stars: minStars, page, limit: 20 })
+        ? await fetchBusinesses({ city, query: q, min_stars: minStars, page, limit: 20 })
         : [];
 
     return (
@@ -37,6 +38,7 @@ export default async function HomePage({ searchParams }: Props) {
                     <div className="hero-search">
                         <SearchForm
                             initialCity={city}
+                            initialQuery={q}
                             initialMinStars={sp.min_stars ?? ''}
                             cityOptions={cityOptions}
                         />
@@ -66,8 +68,8 @@ export default async function HomePage({ searchParams }: Props) {
                 {hasFilter && (
                     <p className="results-count">
                         {businesses.length === 0
-                            ? `No businesses found${city ? ` in "${city}"` : ''}${minStars != null ? ` with ${minStars}+ stars` : ''}.`
-                            : `${businesses.length} result${businesses.length !== 1 ? 's' : ''}${city ? ` in ${city}` : ''}${minStars != null ? ` · ${minStars}+ stars` : ''}`}
+                            ? `No businesses found${q ? ` for "${q}"` : ''}${city ? ` in "${city}"` : ''}${minStars != null ? ` with ${minStars}+ stars` : ''}.`
+                            : `${businesses.length} result${businesses.length !== 1 ? 's' : ''}${q ? ` for "${q}"` : ''}${city ? ` in ${city}` : ''}${minStars != null ? ` · ${minStars}+ stars` : ''}`}
                     </p>
                 )}
 
@@ -89,7 +91,7 @@ export default async function HomePage({ searchParams }: Props) {
                     <div className="pagination">
                         {page > 1 && (
                             <a
-                                href={`/?city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page - 1}`}
+                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page - 1}`}
                                 className="btn-page"
                             >
                                 ← Previous
@@ -98,7 +100,7 @@ export default async function HomePage({ searchParams }: Props) {
                         <span className="pagination-page">Page {page}</span>
                         {businesses.length === 20 && (
                             <a
-                                href={`/?city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page + 1}`}
+                                href={`/?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&min_stars=${sp.min_stars ?? ''}&page=${page + 1}`}
                                 className="btn-page"
                             >
                                 Next →

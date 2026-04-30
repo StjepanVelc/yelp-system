@@ -45,12 +45,14 @@ function buildAuthHeaders(): HeadersInit {
 
 export async function fetchBusinesses(params: {
     city?: string;
+    query?: string;
     min_stars?: number;
     page?: number;
     limit?: number;
 }): Promise<Business[]> {
     const url = new URL(`${API_BASE}/businesses`);
     if (params.city) url.searchParams.set('city', params.city);
+    if (params.query) url.searchParams.set('query', params.query);
     if (params.min_stars != null) url.searchParams.set('min_stars', String(params.min_stars));
     if (params.page) url.searchParams.set('page', String(params.page));
     if (params.limit) url.searchParams.set('limit', String(params.limit));

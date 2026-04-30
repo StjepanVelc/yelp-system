@@ -5,19 +5,22 @@ import { useState, useTransition, FormEvent } from 'react';
 
 interface Props {
     initialCity?: string;
+    initialQuery?: string;
     initialMinStars?: string;
     cityOptions?: string[];
 }
 
-export default function SearchForm({ initialCity = '', initialMinStars = '', cityOptions = [] }: Props) {
+export default function SearchForm({ initialCity = '', initialQuery = '', initialMinStars = '', cityOptions = [] }: Props) {
     const router = useRouter();
     const [city, setCity] = useState(initialCity);
+    const [query, setQuery] = useState(initialQuery);
     const [minStars, setMinStars] = useState(initialMinStars);
     const [isPending, startTransition] = useTransition();
 
     function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const params = new URLSearchParams();
+        if (query.trim()) params.set('q', query.trim());
         if (city.trim()) params.set('city', city.trim());
         if (minStars) params.set('min_stars', minStars);
         startTransition(() => {
@@ -27,6 +30,17 @@ export default function SearchForm({ initialCity = '', initialMinStars = '', cit
 
     return (
         <form onSubmit={handleSubmit} className="search-form">
+            <input
+                id="searchQuery"
+                name="searchQuery"
+                type="text"
+                placeholder="Search businesses (e.g. pizza, sushi bar, coffee)"
+                value={query}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+                className="search-input"
+                disabled={isPending}
+                autoComplete="off"
+            />
             <input
                 id="city"
                 name="city"
