@@ -50,7 +50,9 @@ logs/
 Thumbs.db
 
 # Docker volumes (lokalni postgres podaci)
-infrastructure/db/
+infrastructure/db/data/
+infrastructure/db/pgdata/
+!infrastructure/db/migrations/
 
 # pytest cache
 .pytest_cache/

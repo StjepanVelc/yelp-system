@@ -84,6 +84,49 @@ function Escape-SingleQuotedValue {
     return $Value -replace "'", "''"
 }
 
+function Resolve-DatabaseUrl {
+    $hasPostgresVars = ($env:POSTGRES_HOST -or $env:POSTGRES_PORT -or $env:POSTGRES_DB -or $env:POSTGRES_USER -or $env:POSTGRES_PASSWORD)
+
+    if ($hasPostgresVars) {
+        $pgHost = if ($env:POSTGRES_HOST) { $env:POSTGRES_HOST } else { "localhost" }
+        $port = if ($env:POSTGRES_PORT) { $env:POSTGRES_PORT } else { "5432" }
+        $db = if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { "yelp" }
+        $user = if ($env:POSTGRES_USER) { $env:POSTGRES_USER } else { "postgres" }
+        $password = if ($env:POSTGRES_PASSWORD) { $env:POSTGRES_PASSWORD } else { "change_me" }
+
+        $encodedUser = [uri]::EscapeDataString($user)
+        $encodedPassword = [uri]::EscapeDataString($password)
+        return "postgresql://$encodedUser`:$encodedPassword@$pgHost`:$port/$db"
+    }
+
+    if ($env:DATABASE_URL) {
+        return $env:DATABASE_URL
+    }
+
+    return "postgresql://postgres:change_me@localhost:5432/yelp"
+}
+
+function Get-PortOwners {
+    param([int[]]$Ports)
+
+    $results = @()
+    foreach ($port in $Ports) {
+        $listeners = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique
+
+        foreach ($ownerPid in $listeners) {
+            $proc = Get-Process -Id $ownerPid -ErrorAction SilentlyContinue
+            $results += [pscustomobject]@{
+                Port    = $port
+                PID     = $ownerPid
+                Process = if ($proc) { $proc.ProcessName } else { "<unknown>" }
+            }
+        }
+    }
+
+    return $results
+}
+
 switch ($Action) {
     "start" {
         if (Test-Path $PidsFile) {
@@ -92,9 +135,23 @@ switch ($Action) {
             exit 1
         }
 
+        $requiredPorts = @(3000, 8000, 8001, 8002, 50051)
+        $portOwners = Get-PortOwners -Ports $requiredPorts
+        if ($portOwners.Count -gt 0) {
+            Write-Host "Cannot start local stack because required ports are already in use:" -ForegroundColor Yellow
+            $portOwners | Sort-Object Port, PID | Format-Table -AutoSize
+            Write-Host ""
+            Write-Host "Tip: stop Docker containers or existing local processes, then retry." -ForegroundColor Yellow
+            Write-Host "Common command: docker compose down" -ForegroundColor Yellow
+            exit 1
+        }
+
         Import-DotEnv -Path $EnvFile
 
-        $databaseUrl = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { "postgresql://postgres:change_me@localhost:5432/yelp" }
+        $databaseUrl = Resolve-DatabaseUrl
+        if ($databaseUrl -match "postgresql://user:") {
+            Write-Host "Warning: DATABASE_URL uses username 'user'. If your local DB user is 'postgres', update .env accordingly." -ForegroundColor Yellow
+        }
         $businessGrpc = if ($env:BUSINESS_SERVICE_GRPC) { $env:BUSINESS_SERVICE_GRPC } else { "localhost:50051" }
         $businessServiceUrl = if ($env:BUSINESS_SERVICE_URL) { $env:BUSINESS_SERVICE_URL } else { "http://localhost:8001" }
         $recommendationServiceUrl = if ($env:RECOMMENDATION_SERVICE_URL) { $env:RECOMMENDATION_SERVICE_URL } else { "http://localhost:8002" }
@@ -106,9 +163,9 @@ switch ($Action) {
         $businessRequiredRoles = if ($env:BUSINESS_REQUIRED_ROLES) { $env:BUSINESS_REQUIRED_ROLES } else { "business:read" }
         $recommendationRequiredRoles = if ($env:RECOMMENDATION_REQUIRED_ROLES) { $env:RECOMMENDATION_REQUIRED_ROLES } else { "recommendation:read" }
 
-        $businessCmd = "$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
-        $recommendationCmd = "$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; $env:BUSINESS_SERVICE_GRPC='$(Escape-SingleQuotedValue $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
-        $gatewayCmd = "$env:BUSINESS_SERVICE_URL='$(Escape-SingleQuotedValue $businessServiceUrl)'; $env:RECOMMENDATION_SERVICE_URL='$(Escape-SingleQuotedValue $recommendationServiceUrl)'; $env:USER_SERVICE_URL='$(Escape-SingleQuotedValue $userServiceUrl)'; $env:JWT_SECRET='$(Escape-SingleQuotedValue $jwtSecret)'; $env:JWT_ALGORITHM='$(Escape-SingleQuotedValue $jwtAlgorithm)'; $env:JWT_ISSUER='$(Escape-SingleQuotedValue $jwtIssuer)'; $env:JWT_AUDIENCE='$(Escape-SingleQuotedValue $jwtAudience)'; $env:BUSINESS_REQUIRED_ROLES='$(Escape-SingleQuotedValue $businessRequiredRoles)'; $env:RECOMMENDATION_REQUIRED_ROLES='$(Escape-SingleQuotedValue $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
+        $businessCmd = "`$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
+        $recommendationCmd = "`$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(Escape-SingleQuotedValue $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
+        $gatewayCmd = "`$env:BUSINESS_SERVICE_URL='$(Escape-SingleQuotedValue $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(Escape-SingleQuotedValue $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(Escape-SingleQuotedValue $userServiceUrl)'; `$env:JWT_SECRET='$(Escape-SingleQuotedValue $jwtSecret)'; `$env:JWT_ALGORITHM='$(Escape-SingleQuotedValue $jwtAlgorithm)'; `$env:JWT_ISSUER='$(Escape-SingleQuotedValue $jwtIssuer)'; `$env:JWT_AUDIENCE='$(Escape-SingleQuotedValue $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(Escape-SingleQuotedValue $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(Escape-SingleQuotedValue $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
         $frontendCmd = "npm --prefix services/frontend run dev"
 
         $processes = @()
