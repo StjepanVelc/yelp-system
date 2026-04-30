@@ -129,6 +129,51 @@ Custom scoring function ranks candidates and returns the most relevant results.
 
 ## 🧪 Running the Project
 
+## 🔐 Environment Variables (Professional Setup)
+
+Use a 3-layer env strategy:
+
+* Root [./.env.example](.env.example): committed template with safe placeholder values
+* Root .env: local private file (never commit)
+* Production: CI/CD or secret manager variables (never from repository files)
+
+### Local setup
+
+1. Copy template:
+
+```bash
+cp .env.example .env
+```
+
+2. Update local secrets in .env (at minimum DB password and JWT secret).
+
+3. For test profile, copy [./.env.test.example](.env.test.example) to `.env.test` and adjust credentials.
+
+### Git safety
+
+[./.gitignore](.gitignore) is configured to ignore env files while keeping the template:
+
+* `.env`
+* `.env.*`
+* `!.env.example`
+
+### Docker behavior
+
+[docker-compose.yml](docker-compose.yml) reads from root .env via `env_file` and supports defaults via `${VAR:-default}`.
+For production deployments, inject values from CI/CD instead of shipping .env files in repo.
+
+### Startup validation
+
+Critical settings are now validated during service startup:
+
+* `DATABASE_URL` is required for business-service, recommendation-service, ingestion-service
+* `JWT_SECRET` is required for api-gateway
+* In `production`/`staging`, placeholder values (like `change_me` or default dev JWT secret) are rejected
+
+This catches misconfiguration early and reduces "works on my machine" issues.
+
+---
+
 ### ▶️ Local Development
 
 ```powershell
@@ -161,6 +206,13 @@ http://localhost:3000
 
 ```bash
 docker compose up --build
+```
+
+After large backend/frontend/config changes, rebuild images before starting containers:
+
+```bash
+docker compose build --no-cache
+docker compose up -d
 ```
 
 After startup:
