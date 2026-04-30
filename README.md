@@ -241,7 +241,6 @@ After startup:
 
 ## 🛠️ Future Improvements
 
-* Full-text search (PostgreSQL)
 * Redis caching
 * Map integration (Leaflet / Mapbox)
 * CI/CD pipeline (GitHub Actions)
