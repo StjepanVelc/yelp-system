@@ -3,8 +3,8 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-_LOG_DIR = Path("/logs") if Path("/logs").exists() else Path(__file__).resolve().parents[4] / "logs"
-_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_DEFAULT_LOG_DIR = Path("/logs")
+_LOG_DIR = _DEFAULT_LOG_DIR if _DEFAULT_LOG_DIR.exists() else Path(__file__).resolve().parent / "logs"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
