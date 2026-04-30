@@ -71,7 +71,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${BUSINESS_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - DATABASE_URL=${BUSINESS_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
     depends_on:
       db:
@@ -91,7 +91,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${RECOMMENDATION_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - DATABASE_URL=${RECOMMENDATION_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - BUSINESS_SERVICE_GRPC=${BUSINESS_SERVICE_GRPC:-business-service:50051}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
     depends_on:
@@ -114,7 +114,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${INGESTION_DATABASE_URL:-postgresql://postgres:stipe245gaba@db:5432/yelp}
+      - DATABASE_URL=${INGESTION_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - DATA_PATH=${DATA_PATH:-/data/raw}
     depends_on:
       db:
@@ -128,7 +128,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-yelp}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stipe245gaba}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
       - "5432:5432"
     volumes:

@@ -8,9 +8,36 @@ Set-Location $RepoRoot
 
 $PythonExe = Join-Path $RepoRoot "venv\Scripts\python.exe"
 $PidsFile = Join-Path $RepoRoot ".local-dev-pids.json"
+$EnvFile = Join-Path $RepoRoot ".env"
 
 if (!(Test-Path $PythonExe)) {
     throw "Python executable not found at $PythonExe. Activate/create venv first."
+}
+
+function Import-DotEnv {
+    param([string]$Path)
+
+    if (!(Test-Path $Path)) {
+        return
+    }
+
+    foreach ($line in Get-Content $Path) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
+            continue
+        }
+
+        $parts = $trimmed.Split("=", 2)
+        if ($parts.Count -ne 2) {
+            continue
+        }
+
+        $key = $parts[0].Trim()
+        $value = $parts[1].Trim().Trim('"').Trim("'")
+        if (![string]::IsNullOrWhiteSpace($key)) {
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+        }
+    }
 }
 
 function Start-ServiceWindow {
@@ -20,10 +47,10 @@ function Start-ServiceWindow {
     )
 
     $startArgs = @{
-        FilePath = "powershell"
+        FilePath         = "powershell"
         WorkingDirectory = $RepoRoot
-        ArgumentList = @("-NoExit", "-Command", $Command)
-        PassThru = $true
+        ArgumentList     = @("-NoExit", "-Command", $Command)
+        PassThru         = $true
     }
 
     $proc = Start-Process @startArgs
@@ -52,6 +79,11 @@ function Load-TrackedProcesses {
     return @($data)
 }
 
+function Escape-SingleQuotedValue {
+    param([string]$Value)
+    return $Value -replace "'", "''"
+}
+
 switch ($Action) {
     "start" {
         if (Test-Path $PidsFile) {
@@ -60,9 +92,23 @@ switch ($Action) {
             exit 1
         }
 
-        $businessCmd = "$env:DATABASE_URL='postgresql://postgres:stipe245gaba@localhost:5432/yelp'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
-        $recommendationCmd = "$env:DATABASE_URL='postgresql://postgres:stipe245gaba@localhost:5432/yelp'; $env:BUSINESS_SERVICE_GRPC='localhost:50051'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
-        $gatewayCmd = "$env:BUSINESS_SERVICE_URL='http://localhost:8001'; $env:RECOMMENDATION_SERVICE_URL='http://localhost:8002'; $env:USER_SERVICE_URL='http://localhost:8001'; $env:JWT_SECRET='dev-secret-change-me'; $env:JWT_ALGORITHM='HS256'; $env:JWT_ISSUER='yelp-auth'; $env:JWT_AUDIENCE='yelp-api'; $env:BUSINESS_REQUIRED_ROLES='business:read'; $env:RECOMMENDATION_REQUIRED_ROLES='recommendation:read'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
+        Import-DotEnv -Path $EnvFile
+
+        $databaseUrl = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { "postgresql://postgres:change_me@localhost:5432/yelp" }
+        $businessGrpc = if ($env:BUSINESS_SERVICE_GRPC) { $env:BUSINESS_SERVICE_GRPC } else { "localhost:50051" }
+        $businessServiceUrl = if ($env:BUSINESS_SERVICE_URL) { $env:BUSINESS_SERVICE_URL } else { "http://localhost:8001" }
+        $recommendationServiceUrl = if ($env:RECOMMENDATION_SERVICE_URL) { $env:RECOMMENDATION_SERVICE_URL } else { "http://localhost:8002" }
+        $userServiceUrl = if ($env:USER_SERVICE_URL) { $env:USER_SERVICE_URL } else { "http://localhost:8001" }
+        $jwtSecret = if ($env:JWT_SECRET) { $env:JWT_SECRET } else { "dev-secret-change-me" }
+        $jwtAlgorithm = if ($env:JWT_ALGORITHM) { $env:JWT_ALGORITHM } else { "HS256" }
+        $jwtIssuer = if ($env:JWT_ISSUER) { $env:JWT_ISSUER } else { "yelp-auth" }
+        $jwtAudience = if ($env:JWT_AUDIENCE) { $env:JWT_AUDIENCE } else { "yelp-api" }
+        $businessRequiredRoles = if ($env:BUSINESS_REQUIRED_ROLES) { $env:BUSINESS_REQUIRED_ROLES } else { "business:read" }
+        $recommendationRequiredRoles = if ($env:RECOMMENDATION_REQUIRED_ROLES) { $env:RECOMMENDATION_REQUIRED_ROLES } else { "recommendation:read" }
+
+        $businessCmd = "$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
+        $recommendationCmd = "$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; $env:BUSINESS_SERVICE_GRPC='$(Escape-SingleQuotedValue $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
+        $gatewayCmd = "$env:BUSINESS_SERVICE_URL='$(Escape-SingleQuotedValue $businessServiceUrl)'; $env:RECOMMENDATION_SERVICE_URL='$(Escape-SingleQuotedValue $recommendationServiceUrl)'; $env:USER_SERVICE_URL='$(Escape-SingleQuotedValue $userServiceUrl)'; $env:JWT_SECRET='$(Escape-SingleQuotedValue $jwtSecret)'; $env:JWT_ALGORITHM='$(Escape-SingleQuotedValue $jwtAlgorithm)'; $env:JWT_ISSUER='$(Escape-SingleQuotedValue $jwtIssuer)'; $env:JWT_AUDIENCE='$(Escape-SingleQuotedValue $jwtAudience)'; $env:BUSINESS_REQUIRED_ROLES='$(Escape-SingleQuotedValue $businessRequiredRoles)'; $env:RECOMMENDATION_REQUIRED_ROLES='$(Escape-SingleQuotedValue $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
         $frontendCmd = "npm --prefix services/frontend run dev"
 
         $processes = @()
