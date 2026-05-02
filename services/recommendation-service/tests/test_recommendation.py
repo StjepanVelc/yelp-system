@@ -109,20 +109,20 @@ class TestRecommendationRoutes:
             yield c
 
     def test_get_recommendations_ok(self, client):
-        with patch("app.service.recommendation_service.get_recommendations", return_value=[CANDIDATE_MATCH]):
+        with patch("app.api.routes.get_recommendations", return_value=[CANDIDATE_MATCH]):
             response = client.get("/recommendations/biz-001")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
 
     def test_get_recommendations_not_found(self, client):
-        with patch("app.service.recommendation_service.get_recommendations", return_value=[]):
+        with patch("app.api.routes.get_recommendations", return_value=[]):
             response = client.get("/recommendations/missing")
         assert response.status_code == 404
 
     def test_get_recommendations_custom_limit(self, client):
         results = [dict(CANDIDATE_MATCH, id=f"biz-{i}") for i in range(5)]
-        with patch("app.service.recommendation_service.get_recommendations", return_value=results) as mock_svc:
+        with patch("app.api.routes.get_recommendations", return_value=results) as mock_svc:
             response = client.get("/recommendations/biz-001?limit=5")
         assert response.status_code == 200
         mock_svc.assert_called_once_with("biz-001", 5)

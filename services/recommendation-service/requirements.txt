@@ -3,3 +3,4 @@ uvicorn[standard]==0.29.0
 grpcio==1.64.0
 grpcio-tools==1.64.0
 pydantic-settings==2.2.1
+redis==5.0.7

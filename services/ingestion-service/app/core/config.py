@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str
     data_path: str = "/data/raw"
+    redis_enabled: bool = True
+    redis_url: str = "redis://localhost:6379/0"
+    redis_timeout_seconds: float = 0.2
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

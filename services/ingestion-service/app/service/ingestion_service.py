@@ -9,6 +9,7 @@ from app.loaders.json_loader import (
     load_checkins,
 )
 from app.core.config import settings
+from app.core.cache import cache_invalidator
 from app.core.logger import get_logger
 
 log = get_logger("ingestion-service")
@@ -19,7 +20,7 @@ BATCH_SIZE = 1000
 # ─── Business ────────────────────────────────────────────────────────────────
 
 def ingest_businesses(session) -> int:
-    return _ingest_stream(
+    total = _ingest_stream(
         session,
         load_businesses(settings.data_path),
         "businesses",
@@ -34,12 +35,14 @@ def ingest_businesses(session) -> int:
             ON CONFLICT (id) DO NOTHING
         """,
     )
+    _invalidate_after_ingest("businesses")
+    return total
 
 
 # ─── Review ──────────────────────────────────────────────────────────────────
 
 def ingest_reviews(session) -> int:
-    return _ingest_stream(
+    total = _ingest_stream(
         session,
         load_reviews(settings.data_path),
         "reviews",
@@ -50,12 +53,14 @@ def ingest_reviews(session) -> int:
             ON CONFLICT (review_id) DO NOTHING
         """,
     )
+    _invalidate_after_ingest("reviews")
+    return total
 
 
 # ─── User ────────────────────────────────────────────────────────────────────
 
 def ingest_users(session) -> int:
-    return _ingest_stream(
+    total = _ingest_stream(
         session,
         load_users(settings.data_path),
         "users",
@@ -68,6 +73,8 @@ def ingest_users(session) -> int:
             ON CONFLICT (user_id) DO NOTHING
         """,
     )
+    _invalidate_after_ingest("users")
+    return total
 
 
 # ─── Tip ─────────────────────────────────────────────────────────────────────
@@ -145,6 +152,27 @@ def _ingest_stream(session, stream, name: str, desc: str, insert_sql: str) -> in
 def _execute_batch(session, sql: str, batch: list):
     session.execute(text(sql), batch)
     session.commit()
+
+
+def _invalidate_after_ingest(dataset: str) -> None:
+    env = settings.app_env
+
+    pattern_map = {
+        "businesses": [
+            (f"yelp:{env}:business:details:*:v1", "business.details"),
+            (f"yelp:{env}:business:cities:all:v1", "business.cities"),
+            (f"yelp:{env}:recommendation:by_business:*:v1", "recommendation.by_business"),
+        ],
+        "reviews": [
+            (f"yelp:{env}:recommendation:by_business:*:v1", "recommendation.by_business"),
+        ],
+        "users": [
+            (f"yelp:{env}:recommendation:by_business:*:v1", "recommendation.by_business"),
+        ],
+    }
+
+    for pattern, namespace in pattern_map.get(dataset, []):
+        cache_invalidator.delete_pattern(pattern, namespace)
 
 
 if __name__ == "__main__":

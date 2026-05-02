@@ -73,9 +73,14 @@ services:
     environment:
       - DATABASE_URL=${BUSINESS_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
+      - REDIS_ENABLED=${REDIS_ENABLED:-true}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
@@ -94,9 +99,14 @@ services:
       - DATABASE_URL=${RECOMMENDATION_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - BUSINESS_SERVICE_GRPC=${BUSINESS_SERVICE_GRPC:-business-service:50051}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
+      - REDIS_ENABLED=${REDIS_ENABLED:-true}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
     depends_on:
       business-service:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')" ]
@@ -116,9 +126,21 @@ services:
     environment:
       - DATABASE_URL=${INGESTION_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - DATA_PATH=${DATA_PATH:-/data/raw}
+      - REDIS_ENABLED=${REDIS_ENABLED:-true}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "yes" ]
     restart: unless-stopped
 
   db:
