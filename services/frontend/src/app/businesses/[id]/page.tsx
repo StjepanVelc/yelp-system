@@ -3,6 +3,9 @@ import BusinessCard from '@/components/BusinessCard';
 import ReviewText from '@/components/ReviewText';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const BusinessMap = dynamic(() => import('@/components/BusinessMap'), { ssr: false });
 
 function avatarClass(userId: string): string {
     const code = (userId.charCodeAt(0) || 0) + (userId.charCodeAt(1) || 0);
@@ -78,6 +81,18 @@ export default async function BusinessPage({ params }: Props) {
                         </span>
                     </div>
                 </div>
+
+                {/* ── Map ──────────────────────────────────────────────────── */}
+                {business.latitude !== 0 && business.longitude !== 0 && (
+                    <section className="map-section">
+                        <h2 className="map-title">Location</h2>
+                        <BusinessMap
+                            lat={business.latitude}
+                            lng={business.longitude}
+                            name={business.name}
+                        />
+                    </section>
+                )}
 
                 {/* ── Reviews ──────────────────────────────────────────────── */}
                 <section className="reviews-section">

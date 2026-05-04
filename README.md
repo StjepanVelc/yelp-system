@@ -93,6 +93,8 @@ Ingestion Service
 * ✅ Business detail page (categories, location, status)
 * ✅ Recommendation engine (distance + category + rating)
 * ✅ Reviews system (paginated, sorted)
+* ✅ Interactive map on business detail (Leaflet + OpenStreetMap)
+* ✅ Redis cache layer (cache-aside, stampede protection, rollout flags, observability)
 * ✅ gRPC communication between services
 * ✅ API Gateway routing & validation
 * ✅ Rate limiting + security headers (Nginx)
@@ -227,23 +229,89 @@ After startup:
 
 ## 🧰 Tech Stack
 
-| Layer      | Technology                 |
-| ---------- | -------------------------- |
-| Frontend   | Next.js, React, TypeScript |
-| Backend    | FastAPI, Python            |
-| Database   | PostgreSQL                 |
-| ORM        | SQLAlchemy                 |
-| RPC        | gRPC                       |
-| Proxy      | Nginx                      |
-| Containers | Docker                     |
+| Layer      | Technology                          |
+| ---------- | ----------------------------------- |
+| Frontend   | Next.js, React, TypeScript, Leaflet |
+| Backend    | FastAPI, Python                     |
+| Cache      | Redis 7 (cache-aside, LRU)          |
+| Database   | PostgreSQL                          |
+| ORM        | SQLAlchemy                          |
+| RPC        | gRPC                                |
+| Proxy      | Nginx                               |
+| Containers | Docker                              |
 
 ---
 
 ## 🛠️ Future Improvements
 
-* Redis caching
-* Map integration (Leaflet / Mapbox)
+* Redis Cluster / managed failover (ElastiCache)
+* Event-driven cache invalidation (CDC via Debezium)
 * CI/CD pipeline (GitHub Actions)
+
+---
+
+## ⚡ Redis Caching
+
+Production-grade cache-aside layer built on Redis 7, covering all high-traffic read routes.
+
+### What's cached
+
+| Endpoint | Namespace | TTL |
+|---|---|---|
+| `GET /businesses/{id}` | `business.details` | 60 min |
+| `GET /businesses/cities` | `business.cities` | 12 h |
+| `GET /recommendations/{id}` | `recommendation.by_business` | 15 min |
+
+All TTLs include ±15% random jitter to spread expiry across time and avoid thundering-herd storms.
+
+### Key design decisions
+
+**Stampede protection** — when a hot key expires, a single `SET NX PX` distributed lock gates the DB fetch. Concurrent requests wait (up to 5 s) rather than all firing parallel queries.
+
+**Fail-open** — Redis is optional. If unreachable or slow (> 0.2 s timeout), every service falls through to PostgreSQL/gRPC and returns 200. Zero downtime from a Redis outage.
+
+**Canary rollout** — `CACHE_ROLLOUT_PERCENT` (0–100) uses `md5(entity_id) % 100` to deterministically route a fraction of IDs through the cache. Allows gradual exposure without code changes.
+
+**Shadow mode** — `CACHE_SHADOW_MODE=true` always serves from DB, reads Redis in parallel, and logs whether the values matched. Used for pre-launch validation.
+
+**Write-through invalidation** — the ingestion service deletes affected cache keys after successful DB writes so stale data never outlives an ingest run.
+
+### Infrastructure
+
+| Config | Value | Why |
+|---|---|---|
+| `maxmemory` | 256 MB | Covers hot working set; LRU evicts cold keys automatically |
+| `maxmemory-policy` | `allkeys-lru` | Evict least-recently-used across all keys |
+| AOF (`appendonly yes`) | enabled | Crash-safe write journal |
+| RDB snapshots | 60 s / 300 s / 3600 s | Point-in-time backup for warm restarts |
+| Auth | `requirepass` via `REDIS_PASSWORD` env var | No hardcoded credentials |
+| Persistence volume | `redis_data` Docker volume | Survives container restarts |
+
+### Observability
+
+Each service exposes a live stats endpoint:
+
+```
+GET http://localhost:8001/cache/stats   # business-service
+GET http://localhost:8002/cache/stats   # recommendation-service
+```
+
+Response includes per-namespace `hits`, `misses`, `errors`, `hit_rate`, `locks_acquired`, `stampede_waits`.
+
+### Load & chaos testing
+
+```bash
+# Concurrent load test — reports p50/p95/p99 + hit-rate delta
+python scripts/cache_load_test.py load --rounds 5 --concurrency 20
+
+# Kill Redis mid-traffic and verify fail-open (checklist)
+python scripts/cache_load_test.py chaos
+```
+
+Docs:
+
+* [docs/redis-cache.md](docs/redis-cache.md) — key contract, TTL matrix, environment variables
+* [docs/redis-runbook.md](docs/redis-runbook.md) — alert thresholds, rollout sequence, incident procedures, backup/restore
 
 ---
 

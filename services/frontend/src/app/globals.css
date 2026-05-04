@@ -1011,3 +1011,23 @@ body {
 .state-msg a:hover {
     text-decoration: underline;
 }
+/* -- Business map (Leaflet) --------------------------------------------- */
+.map-section {
+    margin-top: 2rem;
+}
+
+.map-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.75rem;
+}
+
+.business-map {
+    height: 300px;
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: #e8e8e8;
+}

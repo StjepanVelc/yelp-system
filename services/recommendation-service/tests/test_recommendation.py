@@ -128,7 +128,7 @@ class TestRecommendationRoutes:
         mock_svc.assert_called_once_with("biz-001", 5)
 
 
-# ── Sprint 2: Rollout + shadow mode tests ─────────────────────────────────────
+# ── Rollout + shadow mode tests ────────────────────────────────────────────────────
 
 class TestRecommendationRollout:
     def test_should_use_cache_at_100_percent(self):
@@ -174,7 +174,7 @@ class TestRecommendationRollout:
             mock_cache.get_json.assert_called_once()
 
 
-# ── Sprint 2: /cache/stats endpoint ───────────────────────────────────────────
+# ── /cache/stats endpoint ─────────────────────────────────────────────────────────────
 
 class TestRecommendationCacheStatsEndpoint:
     @pytest.fixture

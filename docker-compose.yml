@@ -74,7 +74,7 @@ services:
       - DATABASE_URL=${BUSINESS_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_pass}@redis:6379/0
       - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
       - CACHE_ROLLOUT_PERCENT=${CACHE_ROLLOUT_PERCENT:-100}
       - CACHE_SHADOW_MODE=${CACHE_SHADOW_MODE:-false}
@@ -102,7 +102,7 @@ services:
       - BUSINESS_SERVICE_GRPC=${BUSINESS_SERVICE_GRPC:-business-service:50051}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000,http://api-gateway:8000}
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_pass}@redis:6379/0
       - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
       - CACHE_ROLLOUT_PERCENT=${CACHE_ROLLOUT_PERCENT:-100}
       - CACHE_SHADOW_MODE=${CACHE_SHADOW_MODE:-false}
@@ -131,7 +131,7 @@ services:
       - DATABASE_URL=${INGESTION_DATABASE_URL:-postgresql://postgres:change_me@db:5432/yelp}
       - DATA_PATH=${DATA_PATH:-/data/raw}
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_pass}@redis:6379/0
       - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
     depends_on:
       db:
@@ -144,7 +144,10 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    command: [ "redis-server", "--appendonly", "yes" ]
+    command: >
+      redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --save 3600 1 --save 300 100 --save 60 10000 --requirepass ${REDIS_PASSWORD:-dev_redis_pass}
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
 
   db:
@@ -169,3 +172,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

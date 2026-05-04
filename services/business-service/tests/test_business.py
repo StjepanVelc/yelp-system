@@ -269,7 +269,7 @@ class TestBusinessRoutes:
         assert response.json()["deleted"] is True
 
 
-# ── Sprint 2: CacheStats unit tests ───────────────────────────────────────────
+# ── CacheStats unit tests ─────────────────────────────────────────────────────
 
 class TestCacheStats:
     def test_snapshot_empty(self):
@@ -323,7 +323,7 @@ class TestCacheStats:
         assert s["namespaces"]["business.cities"]["misses"] == 1
 
 
-# ── Sprint 2: Lock unit tests ──────────────────────────────────────────────────
+# ── Lock unit tests ──────────────────────────────────────────────────────────────
 
 class TestCacheLock:
     def _make_client(self, redis_set_return):
@@ -364,7 +364,7 @@ class TestCacheLock:
         assert client.acquire_lock("lock:test-key") is False
 
 
-# ── Sprint 2: Rollout + shadow mode tests ─────────────────────────────────────
+# ── Rollout + shadow mode tests ────────────────────────────────────────────────────
 
 class TestCacheRollout:
     def test_should_use_cache_at_100_percent(self):
@@ -410,7 +410,7 @@ class TestCacheRollout:
             mock_cache.get_json.assert_called_once()
 
 
-# ── Sprint 2: /cache/stats endpoint ───────────────────────────────────────────
+# ── /cache/stats endpoint ─────────────────────────────────────────────────────────────
 
 class TestCacheStatsEndpoint:
     @pytest.fixture
