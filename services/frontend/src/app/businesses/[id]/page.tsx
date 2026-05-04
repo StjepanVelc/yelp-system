@@ -1,11 +1,9 @@
 import { fetchBusiness, fetchRecommendations, fetchReviews } from '@/lib/api';
 import BusinessCard from '@/components/BusinessCard';
 import ReviewText from '@/components/ReviewText';
+import BusinessMapWrapper from '@/components/BusinessMapWrapper';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-const BusinessMap = dynamic(() => import('@/components/BusinessMap'), { ssr: false });
 
 function avatarClass(userId: string): string {
     const code = (userId.charCodeAt(0) || 0) + (userId.charCodeAt(1) || 0);
@@ -86,7 +84,7 @@ export default async function BusinessPage({ params }: Props) {
                 {business.latitude !== 0 && business.longitude !== 0 && (
                     <section className="map-section">
                         <h2 className="map-title">Location</h2>
-                        <BusinessMap
+                        <BusinessMapWrapper
                             lat={business.latitude}
                             lng={business.longitude}
                             name={business.name}
