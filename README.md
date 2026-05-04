@@ -46,6 +46,28 @@ This project demonstrates a **production-style microservices architecture** with
 
 ![Architecture](docs/image/Architecture.png)
 
+### 📷 Architecture Deep Dive (Latest Diagrams)
+
+#### System Architecture Overview
+
+![System Architecture Overview](docs/image/system-architecture-overview.png)
+
+#### Redis Cache-Aside Flow
+
+![Redis Cache-Aside Flow](docs/image/redis-cache-aside-flow.png)
+
+#### Request Lifecycle (End-to-End)
+
+![Request Lifecycle End-to-End](docs/image/request-lifecycle-end-to-end.png)
+
+#### Fail-Open and Resilience
+
+![Fail-Open Resilience](docs/image/fail-open-resilience.png)
+
+#### Data Ingestion Pipeline
+
+![Data Ingestion Pipeline](docs/image/data-ingestion-pipeline.png)
+
 ---
 
 ## 🗄️ Database Schema
@@ -55,34 +77,6 @@ This project demonstrates a **production-style microservices architecture** with
 * ~10.2 million records
 * 5 main tables: `businesses`, `users`, `reviews`, `tips`, `checkins`
 * Indexed for performance (city, stars, review_count…)
-
----
-
-## ⚙️ Architecture Breakdown
-
-```
-Browser
-  │
-  ▼
-Nginx (:80)
-  ├── /api/*  → API Gateway (:8000)
-  │               ├── Business Service (:8001)
-  │               └── Recommendation Service (:8002)
-  │
-  └── Frontend (Next.js :3000)
-
-Business Service
-  ├── REST API
-  ├── gRPC Server (:50051)
-  └── PostgreSQL
-
-Recommendation Service
-  ├── REST API
-  └── gRPC Client → Business Service
-
-Ingestion Service
-  └── Loads Yelp dataset into PostgreSQL
-```
 
 ---
 
@@ -252,66 +246,26 @@ After startup:
 
 ## ⚡ Redis Caching
 
-Production-grade cache-aside layer built on Redis 7, covering all high-traffic read routes.
+Production-grade cache-aside layer built on Redis 7 for high-traffic read routes:
 
-### What's cached
+- `GET /businesses/{id}` → `business.details` (TTL 60 min)
+- `GET /businesses/cities` → `business.cities` (TTL 12 h)
+- `GET /recommendations/{id}` → `recommendation.by_business` (TTL 15 min)
 
-| Endpoint | Namespace | TTL |
-|---|---|---|
-| `GET /businesses/{id}` | `business.details` | 60 min |
-| `GET /businesses/cities` | `business.cities` | 12 h |
-| `GET /recommendations/{id}` | `recommendation.by_business` | 15 min |
+Implemented capabilities:
 
-All TTLs include ±15% random jitter to spread expiry across time and avoid thundering-herd storms.
-
-### Key design decisions
-
-**Stampede protection** — when a hot key expires, a single `SET NX PX` distributed lock gates the DB fetch. Concurrent requests wait (up to 5 s) rather than all firing parallel queries.
-
-**Fail-open** — Redis is optional. If unreachable or slow (> 0.2 s timeout), every service falls through to PostgreSQL/gRPC and returns 200. Zero downtime from a Redis outage.
-
-**Canary rollout** — `CACHE_ROLLOUT_PERCENT` (0–100) uses `md5(entity_id) % 100` to deterministically route a fraction of IDs through the cache. Allows gradual exposure without code changes.
-
-**Shadow mode** — `CACHE_SHADOW_MODE=true` always serves from DB, reads Redis in parallel, and logs whether the values matched. Used for pre-launch validation.
-
-**Write-through invalidation** — the ingestion service deletes affected cache keys after successful DB writes so stale data never outlives an ingest run.
-
-### Infrastructure
-
-| Config | Value | Why |
-|---|---|---|
-| `maxmemory` | 256 MB | Covers hot working set; LRU evicts cold keys automatically |
-| `maxmemory-policy` | `allkeys-lru` | Evict least-recently-used across all keys |
-| AOF (`appendonly yes`) | enabled | Crash-safe write journal |
-| RDB snapshots | 60 s / 300 s / 3600 s | Point-in-time backup for warm restarts |
-| Auth | `requirepass` via `REDIS_PASSWORD` env var | No hardcoded credentials |
-| Persistence volume | `redis_data` Docker volume | Survives container restarts |
-
-### Observability
-
-Each service exposes a live stats endpoint:
-
-```
-GET http://localhost:8001/cache/stats   # business-service
-GET http://localhost:8002/cache/stats   # recommendation-service
-```
-
-Response includes per-namespace `hits`, `misses`, `errors`, `hit_rate`, `locks_acquired`, `stampede_waits`.
-
-### Load & chaos testing
-
-```bash
-# Concurrent load test — reports p50/p95/p99 + hit-rate delta
-python scripts/cache_load_test.py load --rounds 5 --concurrency 20
-
-# Kill Redis mid-traffic and verify fail-open (checklist)
-python scripts/cache_load_test.py chaos
-```
+- TTL jitter (±15%) to prevent synchronized expiry spikes
+- Stampede protection with distributed lock (`SET NX PX`)
+- Fail-open behavior when Redis is unavailable (services continue via DB/gRPC)
+- Canary rollout controls (`CACHE_ROLLOUT_PERCENT`, `CACHE_SHADOW_MODE`)
+- Invalidation after ingestion writes
+- Redis hardening (`allkeys-lru`, 256 MB cap, `requirepass`, AOF + RDB, persistent volume)
+- Per-service stats endpoint: `/cache/stats`
 
 Docs:
 
-* [docs/redis-cache.md](docs/redis-cache.md) — key contract, TTL matrix, environment variables
-* [docs/redis-runbook.md](docs/redis-runbook.md) — alert thresholds, rollout sequence, incident procedures, backup/restore
+* [docs/redis-cache.md](docs/redis-cache.md) — cache contract, key format, TTL matrix, rollout flags
+* [docs/redis-runbook.md](docs/redis-runbook.md) — operations, alerting, incidents, backup/restore
 
 ---
 
@@ -321,66 +275,13 @@ All external requests go through the **API Gateway** (`:8000`).
 
 ---
 
-## 🔎 Search Rollout & Observability
+## 🔎 Search & Observability
 
-Business search supports controlled rollout and diagnostics through a single semantic model.
+Business search supports runtime path control with safe fallback (`auto | fts | trigram | legacy`) and emits structured metrics through headers and logs.
 
-### Request query params
+For full details (query params, fallback behavior, response headers, `search_metrics` fields, cURL examples, and frontend debug panel), see:
 
-* `query`: free-text search phrase (max 200 chars)
-* `search_path`: `auto | fts | trigram | legacy`
-
-Behavior:
-
-* `auto` (default): FTS first, then trigram fallback for low/zero-result scenarios
-* `fts`: force FTS only (diagnostics)
-* `trigram`: force trigram only (diagnostics)
-* `legacy`: force legacy SQL filter path (safe rollback)
-
-### Response headers
-
-* `X-Search-Path`: `fts | trigram | legacy`
-* `X-Search-Version`: `v2 | legacy`
-* `X-Search-Latency-Ms`: integer latency in milliseconds
-
-### Logged search metrics
-
-Each `/businesses` request emits a structured `search_metrics` log line with:
-
-* `path`
-* `version`
-* `latency_ms`
-* `result_count`
-* `zero_results`
-* `query_hash` (first 12 chars of SHA-256, never raw query)
-* `fallback_reason` (`forced_legacy`, `forced_trigram`, `fts_low_results`, `fts_zero_results`, `fts_timeout`, `fts_error`, `no_query`)
-
-### Fail-safe behavior
-
-If FTS fails or times out, business-service automatically falls back to `legacy` and logs the reason.
-
-### Example
-
-```bash
-curl -H "Authorization: Bearer <JWT_TOKEN>" \
-  "http://localhost:8000/businesses?query=pizza+tucson&search_path=auto&city=Phoenix"
-```
-
----
-
-## 🧪 Frontend Dev Search Debug
-
-Frontend has a dev-mode debug panel that shows search execution metadata (`X-Search-*`).
-
-Enabled by default in non-production builds.
-You can also force-enable it with:
-
-`NEXT_PUBLIC_SHOW_SEARCH_DEBUG=1`
-
-When enabled:
-
-* Search form exposes a `Path` selector (`auto|fts|trigram|legacy`)
-* Results page shows path, version and latency reported by API Gateway
+* [docs/search-observability.md](docs/search-observability.md)
 
 ---
 
