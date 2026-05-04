@@ -61,7 +61,7 @@ function Start-ServiceWindow {
     }
 }
 
-function Load-TrackedProcesses {
+function Import-TrackedProcesses {
     if (!(Test-Path $PidsFile)) {
         return @()
     }
@@ -79,7 +79,7 @@ function Load-TrackedProcesses {
     return @($data)
 }
 
-function Escape-SingleQuotedValue {
+function ConvertTo-EscapedQuote {
     param([string]$Value)
     return $Value -replace "'", "''"
 }
@@ -163,9 +163,9 @@ switch ($Action) {
         $businessRequiredRoles = if ($env:BUSINESS_REQUIRED_ROLES) { $env:BUSINESS_REQUIRED_ROLES } else { "business:read" }
         $recommendationRequiredRoles = if ($env:RECOMMENDATION_REQUIRED_ROLES) { $env:RECOMMENDATION_REQUIRED_ROLES } else { "recommendation:read" }
 
-        $businessCmd = "`$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
-        $recommendationCmd = "`$env:DATABASE_URL='$(Escape-SingleQuotedValue $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(Escape-SingleQuotedValue $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
-        $gatewayCmd = "`$env:BUSINESS_SERVICE_URL='$(Escape-SingleQuotedValue $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(Escape-SingleQuotedValue $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(Escape-SingleQuotedValue $userServiceUrl)'; `$env:JWT_SECRET='$(Escape-SingleQuotedValue $jwtSecret)'; `$env:JWT_ALGORITHM='$(Escape-SingleQuotedValue $jwtAlgorithm)'; `$env:JWT_ISSUER='$(Escape-SingleQuotedValue $jwtIssuer)'; `$env:JWT_AUDIENCE='$(Escape-SingleQuotedValue $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(Escape-SingleQuotedValue $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(Escape-SingleQuotedValue $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
+        $businessCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
+        $recommendationCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
+        $gatewayCmd = "`$env:BUSINESS_SERVICE_URL='$(ConvertTo-EscapedQuote $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(ConvertTo-EscapedQuote $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(ConvertTo-EscapedQuote $userServiceUrl)'; `$env:JWT_SECRET='$(ConvertTo-EscapedQuote $jwtSecret)'; `$env:JWT_ALGORITHM='$(ConvertTo-EscapedQuote $jwtAlgorithm)'; `$env:JWT_ISSUER='$(ConvertTo-EscapedQuote $jwtIssuer)'; `$env:JWT_AUDIENCE='$(ConvertTo-EscapedQuote $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
         $frontendCmd = "npm --prefix services/frontend run dev"
 
         $processes = @()
@@ -188,7 +188,7 @@ switch ($Action) {
     }
 
     "stop" {
-        $processes = Load-TrackedProcesses
+        $processes = Import-TrackedProcesses
         if ($processes.Count -eq 0) {
             Write-Host "No tracked processes found."
             if (Test-Path $PidsFile) {
@@ -212,7 +212,7 @@ switch ($Action) {
     }
 
     "status" {
-        $processes = Load-TrackedProcesses
+        $processes = Import-TrackedProcesses
         if ($processes.Count -eq 0) {
             Write-Host "No tracked processes found."
             exit 0
