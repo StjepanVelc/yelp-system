@@ -127,13 +127,16 @@ Custom scoring function ranks candidates and returns the most relevant results.
 
 ### 🚀 Quick Start
 
+Run the full system locally using Docker:
+
 ```bash
 docker compose up --build
 ```
 
-Then open:
+After startup, open:
 
 👉 http://localhost
+👉 http://localhost/api/businesses
 
 ---
 
@@ -329,9 +332,13 @@ Additional implementation and debugging notes are available in docs/engineering-
 
 **Stjepan Velc**
 
-Backend & System Design focused developer
+Backend Developer focused on **Python, FastAPI, PostgreSQL, and distributed systems**.
 
-**Tech stack:**
-Python • FastAPI • Microservices • PostgreSQL
+Interested in:
+- system design
+- data-intensive applications
+- scalable backend architecture
+
+🔗 GitHub: https://github.com/StjepanVelc
 
 
