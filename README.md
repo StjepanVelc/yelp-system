@@ -125,17 +125,35 @@ Custom scoring function ranks candidates and returns the most relevant results.
 
 ## 🧪 Running the Project
 
-## 🔐 Environment Variables (Professional Setup)
+### 🚀 Quick Start
 
-The project uses a layered env strategy with committed templates, local private overrides, and production secrets injected outside the repository.
+```bash
+docker compose up --build
+```
 
-For full setup details (local `.env`, test profile, git safety, Docker env resolution, and startup validation rules), see:
+Then open:
 
-* [docs/environment-variables.md](docs/environment-variables.md)
+👉 http://localhost
+
+---
+
+### 🔐 Environment Variables
+
+The project uses a layered environment configuration:
+
+- `.env.example` — committed template (safe defaults)
+- `.env` — local private overrides (not committed)
+- production secrets are injected via CI/CD or runtime environment
+
+For full setup details:
+
+👉 [docs/environment-variables.md](docs/environment-variables.md)
 
 ---
 
 ### ▶️ Local Development
+
+Start each service individually:
 
 ```powershell
 # Activate virtual environment
@@ -163,19 +181,12 @@ http://localhost:3000
 
 ---
 
-### 🐳 Docker Setup
+### 🐳 Docker Setup (Recommended)
+
+Run the full system:
 
 ```bash
 docker compose up --build
-```
-
-Note: the full Yelp dataset is intentionally not baked into Docker images or the Docker Postgres volume. In development, the large dataset is kept in a local database/import flow to avoid oversized images and slow rebuilds.
-
-After large backend/frontend/config changes, rebuild images before starting containers:
-
-```bash
-docker compose build --no-cache
-docker compose up -d
 ```
 
 After startup:
@@ -185,6 +196,19 @@ After startup:
 | http://localhost                | Nginx → Frontend  |
 | http://localhost/api/businesses | API               |
 | http://localhost:3000           | Frontend (direct) |
+
+---
+
+### ⚠️ Notes
+
+- Large dataset (~10M records) is not bundled into Docker images.
+- Import is handled separately to avoid oversized images and slow builds.
+- Rebuild containers after major backend/frontend/config changes:
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
 
 ---
 
