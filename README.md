@@ -244,9 +244,9 @@ After startup:
 
 ## 🛠️ Future Improvements
 
-* Redis Cluster / managed failover (ElastiCache)
-* Event-driven cache invalidation (CDC via Debezium)
-* CI/CD pipeline (GitHub Actions)
+- Add Redis Cluster or managed Redis failover to improve cache availability.
+- Replace manual/pattern-based invalidation with event-driven CDC invalidation using Debezium.
+- Introduce a CI/CD pipeline with GitHub Actions for automated testing and deployment.
 
 ---
 
