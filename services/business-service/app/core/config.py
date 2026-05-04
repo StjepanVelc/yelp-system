@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     redis_enabled: bool = True
     redis_url: str = "redis://localhost:6379/0"
     redis_timeout_seconds: float = 0.2
+    cache_rollout_percent: int = 100
+    cache_shadow_mode: bool = False
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

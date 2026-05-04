@@ -16,6 +16,7 @@ from app.core.logger import get_logger
 
 router = APIRouter()
 user_router = APIRouter()
+cache_router = APIRouter()
 log = get_logger("business-service.routes")
 
 
@@ -103,3 +104,9 @@ def get_business_reviews(
 def get_user_status(user_id: str, db=Depends(get_db)):
     log.info("GET /users/%s/status", user_id)
     return fetch_user_status(db, user_id)
+
+
+@cache_router.get("/cache/stats")
+def cache_stats():
+    from app.core.cache import cache_client
+    return cache_client.stats.snapshot()

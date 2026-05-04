@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import router, user_router
+from app.api.routes import router, user_router, cache_router
 from app.core.logger import get_logger
 import os
 
@@ -36,6 +36,7 @@ app.add_middleware(
 
 app.include_router(router, prefix="/businesses")
 app.include_router(user_router)
+app.include_router(cache_router)
 
 
 @app.get("/")

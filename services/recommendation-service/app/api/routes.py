@@ -3,6 +3,7 @@ from app.service.recommendation_service import get_recommendations
 from app.core.logger import get_logger
 
 router = APIRouter()
+cache_router = APIRouter()
 log = get_logger("recommendation-service.routes")
 
 
@@ -14,4 +15,10 @@ def recommend(business_id: str, limit: int = 10):
         log.warning("No recommendations found for %s", business_id)
         raise HTTPException(status_code=404, detail="Business not found or no recommendations available")
     return results
+
+
+@cache_router.get("/cache/stats")
+def cache_stats():
+    from app.core.cache import cache_client
+    return cache_client.stats.snapshot()
 

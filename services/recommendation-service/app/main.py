@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import router
+from app.api.routes import router, cache_router
 from app.core.logger import get_logger
 import os
 
@@ -16,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/recommendations")
+app.include_router(cache_router)
 
 
 @app.on_event("startup")

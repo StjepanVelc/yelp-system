@@ -76,6 +76,8 @@ services:
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
+      - CACHE_ROLLOUT_PERCENT=${CACHE_ROLLOUT_PERCENT:-100}
+      - CACHE_SHADOW_MODE=${CACHE_SHADOW_MODE:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -102,6 +104,8 @@ services:
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - REDIS_TIMEOUT_SECONDS=${REDIS_TIMEOUT_SECONDS:-0.2}
+      - CACHE_ROLLOUT_PERCENT=${CACHE_ROLLOUT_PERCENT:-100}
+      - CACHE_SHADOW_MODE=${CACHE_SHADOW_MODE:-false}
     depends_on:
       business-service:
         condition: service_healthy

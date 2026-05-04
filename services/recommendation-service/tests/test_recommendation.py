@@ -126,3 +126,71 @@ class TestRecommendationRoutes:
             response = client.get("/recommendations/biz-001?limit=5")
         assert response.status_code == 200
         mock_svc.assert_called_once_with("biz-001", 5)
+
+
+# ── Sprint 2: Rollout + shadow mode tests ─────────────────────────────────────
+
+class TestRecommendationRollout:
+    def test_should_use_cache_at_100_percent(self):
+        from app.service.recommendation_service import _should_use_cache
+        with patch("app.service.recommendation_service.settings") as s:
+            s.cache_rollout_percent = 100
+            assert _should_use_cache("any-id") is True
+
+    def test_should_not_use_cache_at_0_percent(self):
+        from app.service.recommendation_service import _should_use_cache
+        with patch("app.service.recommendation_service.settings") as s:
+            s.cache_rollout_percent = 0
+            assert _should_use_cache("any-id") is False
+
+    def test_rollout_is_deterministic(self):
+        from app.service.recommendation_service import _should_use_cache
+        with patch("app.service.recommendation_service.settings") as s:
+            s.cache_rollout_percent = 50
+            assert _should_use_cache("biz-001") == _should_use_cache("biz-001")
+
+    def test_bypasses_cache_when_rollout_zero(self):
+        from app.service.recommendation_service import get_recommendations
+        with patch("app.service.recommendation_service.settings") as s, \
+             patch("app.service.recommendation_service._fetch_from_source", return_value=[CANDIDATE_MATCH]), \
+             patch("app.service.recommendation_service.cache_client") as mock_cache:
+            s.cache_rollout_percent = 0
+            s.cache_shadow_mode = False
+            result = get_recommendations("biz-001", limit=5)
+            mock_cache.get_json.assert_not_called()
+            assert result == [CANDIDATE_MATCH]
+
+    def test_shadow_mode_serves_source_result(self):
+        from app.service.recommendation_service import get_recommendations
+        with patch("app.service.recommendation_service.settings") as s, \
+             patch("app.service.recommendation_service._fetch_from_source", return_value=[CANDIDATE_MATCH]), \
+             patch("app.service.recommendation_service.cache_client") as mock_cache:
+            s.cache_rollout_percent = 100
+            s.cache_shadow_mode = True
+            s.app_env = "development"
+            mock_cache.get_json.return_value = None
+            result = get_recommendations("biz-001", limit=5)
+            assert result == [CANDIDATE_MATCH]
+            mock_cache.get_json.assert_called_once()
+
+
+# ── Sprint 2: /cache/stats endpoint ───────────────────────────────────────────
+
+class TestRecommendationCacheStatsEndpoint:
+    @pytest.fixture
+    def client(self):
+        from app.main import app
+        with TestClient(app, raise_server_exceptions=False) as c:
+            yield c
+
+    def test_cache_stats_returns_200(self, client):
+        response = client.get("/cache/stats")
+        assert response.status_code == 200
+
+    def test_cache_stats_response_shape(self, client):
+        data = client.get("/cache/stats").json()
+        assert "total" in data
+        assert "namespaces" in data
+        assert "hits" in data["total"]
+        assert "misses" in data["total"]
+        assert "hit_rate" in data["total"]
