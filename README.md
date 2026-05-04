@@ -127,46 +127,11 @@ Custom scoring function ranks candidates and returns the most relevant results.
 
 ## 🔐 Environment Variables (Professional Setup)
 
-Use a 3-layer env strategy:
+The project uses a layered env strategy with committed templates, local private overrides, and production secrets injected outside the repository.
 
-* Root [./.env.example](.env.example): committed template with safe placeholder values
-* Root .env: local private file (never commit)
-* Production: CI/CD or secret manager variables (never from repository files)
+For full setup details (local `.env`, test profile, git safety, Docker env resolution, and startup validation rules), see:
 
-### Local setup
-
-1. Copy template:
-
-```bash
-cp .env.example .env
-```
-
-2. Update local secrets in .env (at minimum DB password and JWT secret).
-
-3. For test profile, copy [./.env.test.example](.env.test.example) to `.env.test` and adjust credentials.
-
-### Git safety
-
-[./.gitignore](.gitignore) is configured to ignore env files while keeping the template:
-
-* `.env`
-* `.env.*`
-* `!.env.example`
-
-### Docker behavior
-
-[docker-compose.yml](docker-compose.yml) reads from root .env via `env_file` and supports defaults via `${VAR:-default}`.
-For production deployments, inject values from CI/CD instead of shipping .env files in repo.
-
-### Startup validation
-
-Critical settings are now validated during service startup:
-
-* `DATABASE_URL` is required for business-service, recommendation-service, ingestion-service
-* `JWT_SECRET` is required for api-gateway
-* In `production`/`staging`, placeholder values (like `change_me` or default dev JWT secret) are rejected
-
-This catches misconfiguration early and reduces "works on my machine" issues.
+* [docs/environment-variables.md](docs/environment-variables.md)
 
 ---
 
@@ -203,6 +168,8 @@ http://localhost:3000
 ```bash
 docker compose up --build
 ```
+
+Note: the full Yelp dataset is intentionally not baked into Docker images or the Docker Postgres volume. In development, the large dataset is kept in a local database/import flow to avoid oversized images and slow rebuilds.
 
 After large backend/frontend/config changes, rebuild images before starting containers:
 
@@ -287,63 +254,11 @@ For full details (query params, fallback behavior, response headers, `search_met
 
 ## 🔐 JWT Authentication (API Gateway)
 
-All protected routes validate:
+The API Gateway validates bearer tokens, required roles, and runtime user status before forwarding protected requests.
 
-* Authorization header format (`Bearer <token>`)
-* JWT signature + claims (`iss`, `aud`, `exp`, `sub`)
-* Route-level required role
-* Runtime user status (`active/deleted`) through user-status service
+For full details (claims, `401/403` behavior, env configuration, cURL examples, and frontend token propagation), see:
 
-### Response model
-
-* `401`:
-
-  * no token
-  * malformed authorization header
-  * invalid token
-  * expired token
-* `403`:
-
-  * missing role
-  * insufficient role
-  * inactive/deleted user
-
-### Expected JWT claims
-
-```json
-{
-  "sub": "user-123",
-  "iss": "yelp-auth",
-  "aud": "yelp-api",
-  "roles": ["business:read", "recommendation:read"],
-  "iat": 1714370000,
-  "exp": 1714373600
-}
-```
-
-### Authorization header example
-
-```bash
-curl -H "Authorization: Bearer <JWT_TOKEN>" \
-  "http://localhost:8000/businesses?city=Phoenix"
-```
-
-### Gateway JWT config (env)
-
-`JWT_SECRET`, `JWT_ALGORITHM`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_LEEWAY_SECONDS`, `JWT_ROLES_CLAIM`
-
-Role mapping:
-
-`BUSINESS_REQUIRED_ROLES`, `RECOMMENDATION_REQUIRED_ROLES`
-
-User status runtime check:
-
-`USER_SERVICE_URL`, `USER_STATUS_PATH_TEMPLATE`, `USER_STATUS_TIMEOUT_SECONDS`
-
-Frontend sends `Authorization` automatically if token is available in:
-
-* `NEXT_PUBLIC_API_AUTH_TOKEN` / `API_AUTH_TOKEN` env
-* `localStorage["api_auth_token"]`
+* [docs/jwt-authentication.md](docs/jwt-authentication.md)
 
 ---
 
@@ -394,4 +309,5 @@ Backend & System Design focused developer
 
 **Tech stack:**
 Python • FastAPI • Microservices • PostgreSQL
+
 
