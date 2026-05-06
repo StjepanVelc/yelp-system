@@ -132,6 +132,12 @@ def _percentile(values: List[float], p: float) -> float:
     return ordered[lo] + (ordered[hi] - ordered[lo]) * (pos - lo)
 
 
+def _is_success_status(status_code: int, strict_status: bool) -> bool:
+    if strict_status:
+        return 200 <= status_code < 400
+    return status_code < 500
+
+
 # ---------------------------------------------------------------------------
 # SSE subscriber management + snapshot store
 # ---------------------------------------------------------------------------
@@ -1010,23 +1016,37 @@ class _Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 # Worker
 # ---------------------------------------------------------------------------
-def _worker(url: str, timeout: float, stop: threading.Event, state: SharedState, token: str | None = None):
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    while not stop.is_set():
-        start = time.perf_counter()
-        ok = False
-        try:
-            req = urllib.request.Request(url, method="GET", headers=headers)
-            with urllib.request.urlopen(req, timeout=timeout) as res:
-                ok = 200 <= res.status < 400
-        except urllib.error.HTTPError as e:
-            ok = e.code < 500
-        except Exception:
-            ok = False
-        latency_ms = (time.perf_counter() - start) * 1000
-        state.record(ok=ok, latency_ms=latency_ms)
+def _worker(
+  url: str,
+  timeout: float,
+  stop: threading.Event,
+  state: SharedState,
+  token: str | None = None,
+  strict_status: bool = True,
+  startup_delay_s: float = 0.0,
+):
+  headers = {}
+  if token:
+    headers["Authorization"] = f"Bearer {token}"
+
+  if startup_delay_s > 0:
+    time.sleep(startup_delay_s)
+
+  while not stop.is_set():
+    start = time.perf_counter()
+    ok = False
+
+    try:
+      req = urllib.request.Request(url, method="GET", headers=headers)
+      with urllib.request.urlopen(req, timeout=timeout) as res:
+        ok = _is_success_status(res.status, strict_status)
+    except urllib.error.HTTPError as e:
+      ok = _is_success_status(e.code, strict_status)
+    except Exception:
+      ok = False
+
+    latency_ms = (time.perf_counter() - start) * 1000
+    state.record(ok=ok, latency_ms=latency_ms)
 
 
 # ---------------------------------------------------------------------------
@@ -1041,6 +1061,7 @@ Examples:
   python scripts/traffic_dashboard.py
   python scripts/traffic_dashboard.py --url http://localhost:8000/health --workers 8 --duration 60
   python scripts/traffic_dashboard.py --url http://localhost:8000/api/businesses?searchQuery=&city=Arizona --workers 24 --duration 180
+  python scripts/traffic_dashboard.py --loose-status
 """,
     )
     parser.add_argument("--url", default=DEFAULT_TARGET, help="Target URL to hammer")
@@ -1051,7 +1072,13 @@ Examples:
     parser.add_argument("--token", default=None, help="Bearer token to include in every request")
     parser.add_argument("--gen-token", action="store_true", help="Auto-generate a dev JWT (uses dev-secret-change-me)")
     parser.add_argument("--jwt-secret", default="dev-secret-change-me", help="JWT secret for --gen-token")
+    parser.add_argument(
+      "--loose-status",
+      action="store_true",
+      help="Old behavior: treat HTTP 4xx as non-error and only count 5xx as errors",
+    )
     args = parser.parse_args()
+    strict_status = not args.loose_status
 
     token: str | None = args.token
     if args.gen_token and not token:
@@ -1070,6 +1097,7 @@ Examples:
     print(f"Dashboard: {dashboard_url}")
     print(f"Target:    {args.url}")
     print(f"Auth:      {'Bearer token set' if token else 'none (no --gen-token)'}")
+    print(f"Status:    {'strict (2xx/3xx only)' if strict_status else 'loose (4xx allowed)'}")
     print(f"Opening browser — select a preset and click Start Run.")
     webbrowser.open(dashboard_url)
 
@@ -1091,8 +1119,20 @@ Examples:
 
     # Start workers
     workers = [
-        threading.Thread(target=_worker, args=(run_url, run_timeout, stop, state, token), daemon=True)
-        for _ in range(run_workers)
+      threading.Thread(
+        target=_worker,
+        args=(
+          run_url,
+          run_timeout,
+          stop,
+          state,
+          token,
+          strict_status,
+          (index / max(1, run_workers)) * 0.5,
+        ),
+        daemon=True,
+      )
+      for index in range(run_workers)
     ]
     for w in workers:
         w.start()
