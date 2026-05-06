@@ -260,11 +260,13 @@ This project focuses on understanding how backend services communicate, how traf
 
 ---
 
-## �🛠️ Future Improvements
+## 🛠️ Future Improvements
 
-- Add Redis Cluster or managed Redis failover to improve cache availability.
-- Replace manual/pattern-based invalidation with event-driven CDC invalidation using Debezium.
-- Introduce a CI/CD pipeline with GitHub Actions for automated testing and deployment.
+- Redis Cluster / managed failover
+- Event-driven cache invalidation using CDC concepts
+- CI/CD pipeline with GitHub Actions
+- Document load testing results per service and endpoint
+- Improve observability with structured logs, metrics and request tracing
 
 ---
 
