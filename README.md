@@ -22,6 +22,17 @@ This project demonstrates a **production-style microservices architecture** with
 
 ---
 
+## 🧭 Quick Architecture Summary
+
+- API Gateway routes external traffic to internal services
+- Business Service handles search, details, reviews and city data
+- Recommendation Service communicates with Business Service via gRPC
+- PostgreSQL stores the Yelp dataset (~10.2M records)
+- Redis cache-aside layer improves hot read paths
+- Nginx handles reverse proxy, rate limiting and security headers
+
+---
+
 ## 🖥️ Application Preview
 
 ### 🔍 Search Page
