@@ -230,7 +230,26 @@ docker compose up -d
 
 ---
 
-## 🛠️ Future Improvements
+## � Load Testing
+
+The system includes traffic testing for individual services and endpoints.
+
+Tracked metrics:
+- success rate
+- errors
+- average RPS
+- P95 latency
+- service-by-service endpoint behavior
+
+---
+
+## 🧠 Engineering Focus
+
+This project focuses on understanding how backend services communicate, how traffic flows through an API gateway, how data-heavy systems behave under load, and how caching, indexing and service boundaries affect performance.
+
+---
+
+## �🛠️ Future Improvements
 
 - Add Redis Cluster or managed Redis failover to improve cache availability.
 - Replace manual/pattern-based invalidation with event-driven CDC invalidation using Debezium.
