@@ -1,0 +1,13 @@
+Run ID: 20260506-132409
+Profile: quick
+GatewayBaseUrl: http://localhost:8000
+
+Name	Category	Status	DurationSec	ExitCode	Summary
+Unit tests	unit	SKIPPED	0	0	Profile=quick
+HTTP health - gateway	integration	PASS	2.92	0	ok
+HTTP health - business	integration	PASS	2.75	0	ok
+HTTP health - recommendation	integration	PASS	2.74	0	ok
+Auth negative - no token returns 401	security	PASS	2.79	0	ok
+Cache stats endpoint - business	cache	PASS	3.12	0	ok
+Cache stats endpoint - recommendation	cache	PASS	3.11	0	ok
+Cache load test	cache	SKIPPED	0	0	Skipped by -SkipCacheLoad

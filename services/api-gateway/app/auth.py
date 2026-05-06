@@ -85,6 +85,16 @@ def require_roles(required_roles: Iterable[str]):
         token = parse_bearer_token(request.headers.get("Authorization"))
         payload = decode_token(token)
         ensure_roles(payload, required_roles)
+
+        # Dev-only escape hatch for synthetic load tests.
+        if (
+            settings.app_env.lower() == "development"
+            and settings.enable_dev_load_test_bypass
+            and bool(payload.get("dev_load_test"))
+        ):
+            request.state.auth = payload
+            return payload
+
         await ensure_user_is_active(payload)
         request.state.auth = payload
         return payload

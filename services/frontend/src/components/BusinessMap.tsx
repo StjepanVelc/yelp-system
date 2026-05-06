@@ -46,6 +46,9 @@ export default function BusinessMap({ lat, lng, name }: BusinessMapProps) {
                 .addTo(map)
                 .bindPopup(`<strong>${name}</strong>`)
                 .openPopup();
+
+            // Fix occasional partial tile render on first paint.
+            setTimeout(() => map?.invalidateSize(), 0);
         })();
 
         return () => {
@@ -55,21 +58,11 @@ export default function BusinessMap({ lat, lng, name }: BusinessMapProps) {
     }, [lat, lng, name]);
 
     return (
-        <>
-            {/* Leaflet CSS loaded inline — avoids need for a global import */}
-            {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-            <link
-                rel="stylesheet"
-                href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                crossOrigin=""
-            />
-            <div
-                ref={containerRef}
-                className="business-map"
-                aria-label={`Map showing location of ${name}`}
-                role="img"
-            />
-        </>
+        <div
+            ref={containerRef}
+            className="business-map"
+            aria-label={`Map showing location of ${name}`}
+            role="img"
+        />
     );
 }

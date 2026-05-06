@@ -1,0 +1,53 @@
+{
+    "run_id":  "20260506-132319",
+    "profile":  "quick",
+    "gateway_base":  "http://localhost:8000",
+    "totals":  {
+                   "pass":  3,
+                   "fail":  0,
+                   "skipped":  null,
+                   "total":  4
+               },
+    "results":  [
+                    {
+                        "Name":  "Unit tests",
+                        "Category":  "unit",
+                        "Status":  "SKIPPED",
+                        "DurationSec":  0,
+                        "ExitCode":  0,
+                        "LogFile":  "C:\\Users\\Stjepan\\yelp-system\\test-results\\20260506-132319\\unit_tests.log",
+                        "Summary":  "Profile=quick",
+                        "Timestamp":  "2026-05-06T13:23:19"
+                    },
+                    {
+                        "Name":  "HTTP health - gateway",
+                        "Category":  "integration",
+                        "Status":  "PASS",
+                        "DurationSec":  2.93,
+                        "ExitCode":  0,
+                        "LogFile":  "C:\\Users\\Stjepan\\yelp-system\\test-results\\20260506-132319\\http_health_-_gateway.log",
+                        "Summary":  "ok",
+                        "Timestamp":  "2026-05-06T13:23:22"
+                    },
+                    {
+                        "Name":  "HTTP health - business",
+                        "Category":  "integration",
+                        "Status":  "PASS",
+                        "DurationSec":  2.76,
+                        "ExitCode":  0,
+                        "LogFile":  "C:\\Users\\Stjepan\\yelp-system\\test-results\\20260506-132319\\http_health_-_business.log",
+                        "Summary":  "ok",
+                        "Timestamp":  "2026-05-06T13:23:25"
+                    },
+                    {
+                        "Name":  "HTTP health - recommendation",
+                        "Category":  "integration",
+                        "Status":  "PASS",
+                        "DurationSec":  2.76,
+                        "ExitCode":  0,
+                        "LogFile":  "C:\\Users\\Stjepan\\yelp-system\\test-results\\20260506-132319\\http_health_-_recommendation.log",
+                        "Summary":  "ok",
+                        "Timestamp":  "2026-05-06T13:23:28"
+                    }
+                ]
+}

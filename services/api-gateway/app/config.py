@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     user_status_path_template: str = "/users/{user_id}/status"
     user_status_timeout_seconds: float = 3.0
+    enable_dev_load_test_bypass: bool = False
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

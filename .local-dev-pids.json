@@ -1,0 +1,18 @@
+[
+    {
+        "name":  "business-service",
+        "pid":  21704
+    },
+    {
+        "name":  "recommendation-service",
+        "pid":  28004
+    },
+    {
+        "name":  "api-gateway",
+        "pid":  7212
+    },
+    {
+        "name":  "frontend",
+        "pid":  29340
+    }
+]

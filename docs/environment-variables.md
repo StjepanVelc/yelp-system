@@ -57,6 +57,25 @@ Critical settings are validated during service startup:
 
 This catches misconfiguration early and reduces "works on my machine" issues.
 
+## Load-test auth bypass (development only)
+
+For synthetic stress testing with `scripts/traffic_dashboard.py --gen-token`, gateway supports an explicit dev-only bypass flag:
+
+- `ENABLE_DEV_LOAD_TEST_BYPASS=false` (default)
+
+Behavior:
+
+- Bypass is active only when all are true:
+	- `APP_ENV=development`
+	- `ENABLE_DEV_LOAD_TEST_BYPASS=true`
+	- JWT contains `dev_load_test=true`
+- Otherwise normal user-status/auth checks are enforced.
+
+Recommendation:
+
+- Enable only during load tests.
+- Set back to `false` immediately after test run.
+
 ## Recommended practice
 
 - keep `.env.example` accurate and safe

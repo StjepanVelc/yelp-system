@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traffic Monitor Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --line1: #22d3ee;
+      --line2: #f59e0b;
+      --line3: #ef4444;
+      --ok: #10b981;
+      --err: #ef4444;
+      --grid: #243244;
+    }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Tahoma, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 55%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1160px; margin: 24px auto; padding: 0 16px 40px; }
+    .title { font-size: 28px; margin: 4px 0 16px; }
+    .meta { color: var(--muted); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; }
+    .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .v { font-size: 28px; margin-top: 8px; }
+    .panel { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; margin-top: 14px; }
+    h3 { margin: 0 0 8px; }
+    svg { width: 100%; height: auto; background: #0b1220; border-radius: 10px; border: 1px solid #1f2937; }
+    .legend { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #1f2937; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Traffic Monitor Report</div>
+    <div class="meta">Generated: 2026-05-06T13:37:30 | Target: http://localhost:8000/health</div>
+
+    <div class="grid">
+      <div class="card"><div class="k">Total Requests</div><div class="v">20</div></div>
+      <div class="card"><div class="k">Success Rate</div><div class="v">100.0%</div></div>
+      <div class="card"><div class="k">Average RPS</div><div class="v">2.0</div></div>
+      <div class="card"><div class="k">P95 Latency</div><div class="v">2099.5 ms</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>RPS Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line1)" stroke-width="3" points="28.00,252.00 121.78,252.00 215.56,28.00 309.33,252.00 403.11,28.00 496.89,252.00 590.67,28.00 684.44,252.00 778.22,28.00 872.00,252.00"></polyline>
+      </svg>
+      <div class="legend">Line: requests per second</div>
+    </div>
+
+    <div class="panel">
+      <h3>Latency Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line2)" stroke-width="3" points="28.00,252.00 121.78,252.00 215.56,28.00 309.33,252.00 403.11,36.01 496.89,252.00 590.67,34.52 684.44,252.00 778.22,35.63 872.00,252.00"></polyline>
+        <polyline fill="none" stroke="var(--line3)" stroke-width="2" points="28.00,252.00 121.78,252.00 215.56,28.00 309.33,252.00 403.11,35.53 496.89,252.00 590.67,34.78 684.44,252.00 778.22,35.10 872.00,252.00"></polyline>
+      </svg>
+      <div class="legend">Orange: avg latency, Red: p95 latency (ms)</div>
+    </div>
+
+    <div class="panel">
+      <h3>Second-by-Second Timeline</h3>
+      <table>
+        <thead><tr><th>Second</th><th>RPS</th><th>OK</th><th>Errors</th><th>Avg ms</th><th>P95 ms</th></tr></thead>
+        <tbody><tr><td>1</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>2</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>3</td><td>4.0</td><td>4</td><td>0</td><td>2100.1</td><td>2104.8</td></tr>
+<tr><td>4</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>5</td><td>4.0</td><td>4</td><td>0</td><td>2025.0</td><td>2034.0</td></tr>
+<tr><td>6</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>7</td><td>4.0</td><td>4</td><td>0</td><td>2039.0</td><td>2041.0</td></tr>
+<tr><td>8</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>9</td><td>4.0</td><td>4</td><td>0</td><td>2028.6</td><td>2038.1</td></tr>
+<tr><td>10</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3>Run Dialogue / Phases</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Phase</th><th>Message</th></tr></thead>
+        <tbody><tr><td>13:37:20</td><td>PREPARE</td><td>Creating worker pool and output folders</td></tr>
+<tr><td>13:37:20</td><td>PREPARE</td><td>Target URL: http://localhost:8000/health</td></tr>
+<tr><td>13:37:20</td><td>PREPARE</td><td>Workers=4, Duration=10s, Timeout=4.0s</td></tr>
+<tr><td>13:37:20</td><td>RUN</td><td>Starting traffic generation</td></tr>
+<tr><td>13:37:21</td><td>RUN</td><td>Warm phase complete, full measurement active</td></tr>
+<tr><td>13:37:25</td><td>RUN</td><td>Halfway point reached, continuing collection</td></tr>
+<tr><td>13:37:30</td><td>FINALIZE</td><td>Writing summary.json, timeline.csv, events.log and report.html</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

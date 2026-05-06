@@ -166,7 +166,7 @@ switch ($Action) {
         $businessCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
         $recommendationCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
         $gatewayCmd = "`$env:BUSINESS_SERVICE_URL='$(ConvertTo-EscapedQuote $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(ConvertTo-EscapedQuote $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(ConvertTo-EscapedQuote $userServiceUrl)'; `$env:JWT_SECRET='$(ConvertTo-EscapedQuote $jwtSecret)'; `$env:JWT_ALGORITHM='$(ConvertTo-EscapedQuote $jwtAlgorithm)'; `$env:JWT_ISSUER='$(ConvertTo-EscapedQuote $jwtIssuer)'; `$env:JWT_AUDIENCE='$(ConvertTo-EscapedQuote $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
-        $frontendCmd = "npm --prefix services/frontend run dev"
+        $frontendCmd = "npm --prefix services/frontend run dev -- --hostname 0.0.0.0 --port 3000"
 
         $processes = @()
         $processes += Start-ServiceWindow -Name "business-service" -Command $businessCmd
