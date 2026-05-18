@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "api-gateway"
+    static_configs:
+      - targets: ["api-gateway:8000"]
+    metrics_path: /metrics
+
+  - job_name: "business-service"
+    static_configs:
+      - targets: ["business-service:8001"]
+    metrics_path: /metrics
+
+  - job_name: "recommendation-service"
+    static_configs:
+      - targets: ["recommendation-service:8002"]
+    metrics_path: /metrics
+
+  - job_name: "ingestion-service"
+    static_configs:
+      - targets: ["ingestion-service:8003"]
+    metrics_path: /metrics

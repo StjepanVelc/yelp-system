@@ -1,11 +1,42 @@
 import logging
 import sys
+import json
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+from app.core.observability import get_correlation_id
 
 _DEFAULT_LOG_DIR = Path("/logs")
 _LOG_DIR = _DEFAULT_LOG_DIR if _DEFAULT_LOG_DIR.exists() else Path(__file__).resolve().parent / "logs"
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "correlation_id": get_correlation_id(),
+        }
+
+        extras = {
+            "method",
+            "path",
+            "status_code",
+            "latency_ms",
+            "service",
+        }
+        for key in extras:
+            value = getattr(record, key, None)
+            if value is not None:
+                payload[key] = value
+
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(payload, ensure_ascii=True)
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -16,10 +47,7 @@ def get_logger(name: str) -> logging.Logger:
 
     logger.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    formatter = JsonFormatter()
 
     # Console handler
     console = logging.StreamHandler(sys.stdout)
