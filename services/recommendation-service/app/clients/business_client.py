@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 import grpc
 from app.grpc import business_pb2, business_pb2_grpc
 from app.core.config import settings

@@ -204,26 +204,27 @@ def get_businesses(
         )
     except Exception:
         log.warning("websearch_to_tsquery failed, falling back to plainto_tsquery", exc_info=True)
-        rows = _ranked_fts_candidates(
-            session=session,
-            parser_sql="plainto_tsquery('simple', :query)",
-            user_query=user_query,
-            filter_clause=filter_clause,
-            params=params,
-            fetch_size=fetch_size,
-        )
-    except Exception as exc:
-        fallback_reason = "fts_timeout" if _is_timeout_error(exc) else "fts_error"
-        log.warning("FTS query failed, falling back to legacy search", exc_info=True)
-        sql = f"SELECT * FROM businesses {filter_clause} LIMIT :limit OFFSET :offset"
-        query_params = dict(params)
-        query_params.update({"limit": limit, "offset": offset})
-        result = session.execute(text(sql), query_params)
-        rows = [dict(row._mapping) for row in result]
-        meta["search_path"] = SEARCH_PATH_LEGACY
-        meta["search_version"] = "legacy"
-        meta["fallback_reason"] = fallback_reason
-        return _return(rows)
+        try:
+            rows = _ranked_fts_candidates(
+                session=session,
+                parser_sql="plainto_tsquery('simple', :query)",
+                user_query=user_query,
+                filter_clause=filter_clause,
+                params=params,
+                fetch_size=fetch_size,
+            )
+        except Exception as exc:
+            fallback_reason = "fts_timeout" if _is_timeout_error(exc) else "fts_error"
+            log.warning("FTS query failed, falling back to legacy search", exc_info=True)
+            sql = f"SELECT * FROM businesses {filter_clause} LIMIT :limit OFFSET :offset"
+            query_params = dict(params)
+            query_params.update({"limit": limit, "offset": offset})
+            result = session.execute(text(sql), query_params)
+            rows = [dict(row._mapping) for row in result]
+            meta["search_path"] = SEARCH_PATH_LEGACY
+            meta["search_version"] = "legacy"
+            meta["fallback_reason"] = fallback_reason
+            return _return(rows)
 
     used_trigram_fallback = False
 

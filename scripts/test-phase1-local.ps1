@@ -1,6 +1,7 @@
 param(
     [ValidateSet("auto", "manual")]
     [string]$Mode = "auto",
+    [switch]$ObservabilityOnly,
     [string]$GatewayUrl = "http://localhost:8000",
     [string]$BusinessUrl = "http://localhost:8001",
     [string]$RecommendationUrl = "http://localhost:8002",
@@ -31,7 +32,7 @@ function Invoke-Script {
     return $LASTEXITCODE
 }
 
-function Can-Reach {
+function Test-UrlReachable {
     param(
         [string]$Url
     )
@@ -108,6 +109,10 @@ function Test-AuthenticatedGatewayFlow {
 
 Write-Host "Running Phase-1 local smoke test..." -ForegroundColor Cyan
 
+if ($ObservabilityOnly) {
+    Write-Host "[MODE] Observability-only: backend service checks will be skipped." -ForegroundColor Cyan
+}
+
 if ($Mode -eq "auto") {
     Write-Host "[AUTO] Ensuring observability stack is up..." -ForegroundColor Cyan
     $obsExit = Invoke-Script -ScriptPath $ObservabilityScript -Arguments @("-Action", "start")
@@ -115,7 +120,7 @@ if ($Mode -eq "auto") {
         $startedObservability = $true
     }
 
-    if (-not (Can-Reach -Url "$GatewayUrl/health")) {
+    if (-not $ObservabilityOnly -and -not (Test-UrlReachable -Url "$GatewayUrl/health")) {
         Write-Host "[AUTO] Gateway not reachable, starting local services..." -ForegroundColor Cyan
         $svcExit = Invoke-Script -ScriptPath $LocalDevScript -Arguments @("-Action", "start")
         if ($svcExit -eq 0) {
@@ -129,17 +134,32 @@ if ($Mode -eq "auto") {
 
 $results = @()
 
-$results += Test-UrlStatus -Name "gateway health" -Url "$GatewayUrl/health"
-$results += Test-UrlStatus -Name "business health" -Url "$BusinessUrl/health"
-$results += Test-UrlStatus -Name "recommendation health" -Url "$RecommendationUrl/health"
-$results += Test-UrlStatus -Name "ingestion health" -Url "$IngestionUrl/health"
 
-$results += Test-UrlStatus -Name "gateway metrics" -Url "$GatewayUrl/metrics"
-$results += Test-UrlStatus -Name "business metrics" -Url "$BusinessUrl/metrics"
-$results += Test-UrlStatus -Name "recommendation metrics" -Url "$RecommendationUrl/metrics"
-$results += Test-UrlStatus -Name "ingestion metrics" -Url "$IngestionUrl/metrics"
 
-$results += Test-AuthenticatedGatewayFlow -BaseUrl $GatewayUrl -Bearer $Token -Cid $CorrelationId
+if (-not $ObservabilityOnly) {
+    $results += Test-UrlStatus -Name "gateway health" -Url "$GatewayUrl/health"
+}
+
+if (-not $ObservabilityOnly) {
+    $results += Test-UrlStatus -Name "business health" -Url "$BusinessUrl/health"
+    $results += Test-UrlStatus -Name "recommendation health" -Url "$RecommendationUrl/health"
+    $results += Test-UrlStatus -Name "ingestion health" -Url "$IngestionUrl/health"
+}
+
+
+if (-not $ObservabilityOnly) {
+    $results += Test-UrlStatus -Name "gateway metrics" -Url "$GatewayUrl/metrics"
+}
+
+if (-not $ObservabilityOnly) {
+    $results += Test-UrlStatus -Name "business metrics" -Url "$BusinessUrl/metrics"
+    $results += Test-UrlStatus -Name "recommendation metrics" -Url "$RecommendationUrl/metrics"
+    $results += Test-UrlStatus -Name "ingestion metrics" -Url "$IngestionUrl/metrics"
+}
+
+if (-not $ObservabilityOnly) {
+    $results += Test-AuthenticatedGatewayFlow -BaseUrl $GatewayUrl -Bearer $Token -Cid $CorrelationId
+}
 
 $results += Test-UrlStatus -Name "prometheus ui" -Url $PrometheusUrl
 $results += Test-UrlStatus -Name "jaeger ui" -Url $JaegerUrl

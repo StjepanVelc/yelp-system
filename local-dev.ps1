@@ -14,6 +14,8 @@ if (!(Test-Path $PythonExe)) {
     throw "Python executable not found at $PythonExe. Activate/create venv first."
 }
 
+[Environment]::SetEnvironmentVariable("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python", "Process")
+
 function Import-DotEnv {
     param([string]$Path)
 
@@ -127,6 +129,20 @@ function Get-PortOwners {
     return $results
 }
 
+function Stop-PortOwners {
+    param([object[]]$PortOwners)
+
+    foreach ($owner in $PortOwners) {
+        try {
+            Stop-Process -Id $owner.PID -Force -ErrorAction Stop
+            Write-Host "Stopped stale process on port $($owner.Port): PID $($owner.PID) ($($owner.Process))" -ForegroundColor Yellow
+        }
+        catch {
+            Write-Host "Could not stop stale process on port $($owner.Port): PID $($owner.PID) ($($owner.Process))" -ForegroundColor Yellow
+        }
+    }
+}
+
 switch ($Action) {
     "start" {
         if (Test-Path $PidsFile) {
@@ -135,11 +151,19 @@ switch ($Action) {
             exit 1
         }
 
-        $requiredPorts = @(3000, 8000, 8001, 8002, 50051)
+        $requiredPorts = @(3000, 8000, 8001, 8002, 8003, 50051)
         $portOwners = Get-PortOwners -Ports $requiredPorts
         if ($portOwners.Count -gt 0) {
-            Write-Host "Cannot start local stack because required ports are already in use:" -ForegroundColor Yellow
+            Write-Host "Required ports are already in use; stopping stale local dev processes first:" -ForegroundColor Yellow
             $portOwners | Sort-Object Port, PID | Format-Table -AutoSize
+            Stop-PortOwners -PortOwners $portOwners
+        }
+
+        Start-Sleep -Milliseconds 500
+        $stillBlockedPorts = Get-PortOwners -Ports $requiredPorts
+        if ($stillBlockedPorts.Count -gt 0) {
+            Write-Host "Cannot start local stack because required ports are still in use:" -ForegroundColor Yellow
+            $stillBlockedPorts | Sort-Object Port, PID | Format-Table -AutoSize
             Write-Host ""
             Write-Host "Tip: stop Docker containers or existing local processes, then retry." -ForegroundColor Yellow
             Write-Host "Common command: docker compose down" -ForegroundColor Yellow
@@ -155,7 +179,9 @@ switch ($Action) {
         $businessGrpc = if ($env:BUSINESS_SERVICE_GRPC) { $env:BUSINESS_SERVICE_GRPC } else { "localhost:50051" }
         $businessServiceUrl = if ($env:BUSINESS_SERVICE_URL) { $env:BUSINESS_SERVICE_URL } else { "http://localhost:8001" }
         $recommendationServiceUrl = if ($env:RECOMMENDATION_SERVICE_URL) { $env:RECOMMENDATION_SERVICE_URL } else { "http://localhost:8002" }
+        $ingestionServiceUrl = if ($env:INGESTION_SERVICE_URL) { $env:INGESTION_SERVICE_URL } else { "http://localhost:8003" }
         $userServiceUrl = if ($env:USER_SERVICE_URL) { $env:USER_SERVICE_URL } else { "http://localhost:8001" }
+        $ingestionDataPath = if ($env:DATA_PATH) { $env:DATA_PATH } else { "infrastructure/data/raw" }
         $jwtSecret = if ($env:JWT_SECRET) { $env:JWT_SECRET } else { "dev-secret-change-me" }
         $jwtAlgorithm = if ($env:JWT_ALGORITHM) { $env:JWT_ALGORITHM } else { "HS256" }
         $jwtIssuer = if ($env:JWT_ISSUER) { $env:JWT_ISSUER } else { "yelp-auth" }
@@ -163,15 +189,18 @@ switch ($Action) {
         $businessRequiredRoles = if ($env:BUSINESS_REQUIRED_ROLES) { $env:BUSINESS_REQUIRED_ROLES } else { "business:read" }
         $recommendationRequiredRoles = if ($env:RECOMMENDATION_REQUIRED_ROLES) { $env:RECOMMENDATION_REQUIRED_ROLES } else { "recommendation:read" }
 
-        $businessCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
-        $recommendationCmd = "`$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
-        $gatewayCmd = "`$env:BUSINESS_SERVICE_URL='$(ConvertTo-EscapedQuote $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(ConvertTo-EscapedQuote $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(ConvertTo-EscapedQuote $userServiceUrl)'; `$env:JWT_SECRET='$(ConvertTo-EscapedQuote $jwtSecret)'; `$env:JWT_ALGORITHM='$(ConvertTo-EscapedQuote $jwtAlgorithm)'; `$env:JWT_ISSUER='$(ConvertTo-EscapedQuote $jwtIssuer)'; `$env:JWT_AUDIENCE='$(ConvertTo-EscapedQuote $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
+        $businessCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
+        $recommendationCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
+        $ingestionCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:DATA_PATH='$(ConvertTo-EscapedQuote $ingestionDataPath)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/ingestion-service --host 0.0.0.0 --port 8003"
+        $gatewayCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:BUSINESS_SERVICE_URL='$(ConvertTo-EscapedQuote $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(ConvertTo-EscapedQuote $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(ConvertTo-EscapedQuote $userServiceUrl)'; `$env:JWT_SECRET='$(ConvertTo-EscapedQuote $jwtSecret)'; `$env:JWT_ALGORITHM='$(ConvertTo-EscapedQuote $jwtAlgorithm)'; `$env:JWT_ISSUER='$(ConvertTo-EscapedQuote $jwtIssuer)'; `$env:JWT_AUDIENCE='$(ConvertTo-EscapedQuote $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
         $frontendCmd = "npm --prefix services/frontend run dev -- --hostname 0.0.0.0 --port 3000"
 
         $processes = @()
         $processes += Start-ServiceWindow -Name "business-service" -Command $businessCmd
         Start-Sleep -Milliseconds 500
         $processes += Start-ServiceWindow -Name "recommendation-service" -Command $recommendationCmd
+        Start-Sleep -Milliseconds 500
+        $processes += Start-ServiceWindow -Name "ingestion-service" -Command $ingestionCmd
         Start-Sleep -Milliseconds 500
         $processes += Start-ServiceWindow -Name "api-gateway" -Command $gatewayCmd
         Start-Sleep -Milliseconds 500
@@ -184,6 +213,7 @@ switch ($Action) {
         Write-Host "API Gateway:           http://localhost:8000"
         Write-Host "Business Service:      http://localhost:8001"
         Write-Host "Recommendation Service:http://localhost:8002"
+        Write-Host "Ingestion Service:     http://localhost:8003"
         Write-Host "Use .\\local-dev.ps1 -Action stop to stop all tracked processes."
     }
 

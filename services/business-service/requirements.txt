@@ -3,8 +3,8 @@ uvicorn[standard]==0.29.0
 sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
 pydantic-settings==2.2.1
-grpcio==1.64.0
-grpcio-tools==1.64.0
+grpcio==1.80.0
+grpcio-tools==1.80.0
 alembic==1.13.1
 redis==5.0.7
 prometheus-client==0.20.0
