@@ -74,7 +74,16 @@ Live stats endpoint (per service):
 ```
 GET http://localhost:8001/cache/stats   # business-service
 GET http://localhost:8002/cache/stats   # recommendation-service
+GET http://localhost:8003/cache/stats   # ingestion-service invalidation stats
 ```
+
+Important fields in the response:
+
+- `hits`, `misses`, `errors`, `hit_rate`
+- `cache_latency_ms_avg`, `cache_latency_ms_total`, `latency_samples`
+- `invalidations`, `invalidated_keys`
+
+On ingestion-service, `/cache/stats` focuses on invalidation activity triggered after ingest writes.
 
 ## Environment Variables
 

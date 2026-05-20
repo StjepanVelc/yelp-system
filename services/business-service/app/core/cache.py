@@ -26,6 +26,10 @@ class CacheStats:
         self._errors: dict[str, int] = defaultdict(int)
         self._locks_acquired: dict[str, int] = defaultdict(int)
         self._stampede_waits: dict[str, int] = defaultdict(int)
+        self._latency_total_ms: dict[str, float] = defaultdict(float)
+        self._latency_samples: dict[str, int] = defaultdict(int)
+        self._invalidations: dict[str, int] = defaultdict(int)
+        self._invalidated_keys: dict[str, int] = defaultdict(int)
 
     def hit(self, namespace: str) -> None:
         with self._lock:
@@ -47,14 +51,35 @@ class CacheStats:
         with self._lock:
             self._stampede_waits[namespace] += 1
 
+    def latency(self, namespace: str, latency_ms: float) -> None:
+        with self._lock:
+            self._latency_total_ms[namespace] += latency_ms
+            self._latency_samples[namespace] += 1
+
+    def invalidation(self, namespace: str, deleted: int) -> None:
+        with self._lock:
+            self._invalidations[namespace] += 1
+            self._invalidated_keys[namespace] += deleted
+
     def snapshot(self) -> dict:
         with self._lock:
-            namespaces = set(self._hits) | set(self._misses) | set(self._errors) | set(self._stampede_waits) | set(self._locks_acquired)
+            namespaces = (
+                set(self._hits)
+                | set(self._misses)
+                | set(self._errors)
+                | set(self._stampede_waits)
+                | set(self._locks_acquired)
+                | set(self._latency_total_ms)
+                | set(self._invalidations)
+                | set(self._invalidated_keys)
+            )
             result: dict[str, Any] = {}
             for ns in sorted(namespaces):
                 h = self._hits[ns]
                 m = self._misses[ns]
                 t = h + m
+                latency_samples = self._latency_samples[ns]
+                latency_total_ms = round(self._latency_total_ms[ns], 2)
                 result[ns] = {
                     "hits": h,
                     "misses": m,
@@ -62,10 +87,17 @@ class CacheStats:
                     "hit_rate": round(h / t, 4) if t else 0.0,
                     "locks_acquired": self._locks_acquired[ns],
                     "stampede_waits": self._stampede_waits[ns],
+                    "latency_samples": latency_samples,
+                    "cache_latency_ms_total": latency_total_ms,
+                    "cache_latency_ms_avg": round(latency_total_ms / latency_samples, 2) if latency_samples else 0.0,
+                    "invalidations": self._invalidations[ns],
+                    "invalidated_keys": self._invalidated_keys[ns],
                 }
             total_hits = sum(self._hits.values())
             total_misses = sum(self._misses.values())
             total = total_hits + total_misses
+            total_latency_samples = sum(self._latency_samples.values())
+            total_latency_ms = round(sum(self._latency_total_ms.values()), 2)
             return {
                 "namespaces": result,
                 "total": {
@@ -73,6 +105,11 @@ class CacheStats:
                     "misses": total_misses,
                     "errors": sum(self._errors.values()),
                     "hit_rate": round(total_hits / total, 4) if total else 0.0,
+                    "latency_samples": total_latency_samples,
+                    "cache_latency_ms_total": total_latency_ms,
+                    "cache_latency_ms_avg": round(total_latency_ms / total_latency_samples, 2) if total_latency_samples else 0.0,
+                    "invalidations": sum(self._invalidations.values()),
+                    "invalidated_keys": sum(self._invalidated_keys.values()),
                 },
             }
 
@@ -124,6 +161,7 @@ class RedisCacheClient:
         try:
             raw = self._client.get(key)
             latency_ms = (time.perf_counter() - started) * 1000
+            self.stats.latency(namespace, latency_ms)
             if raw is None:
                 self.stats.miss(namespace)
                 log.debug(
@@ -153,7 +191,9 @@ class RedisCacheClient:
 
         try:
             effective_ttl = self.jitter_ttl(ttl_seconds)
+            started = time.perf_counter()
             self._client.setex(key, effective_ttl, json.dumps(payload))
+            self.stats.latency(namespace, (time.perf_counter() - started) * 1000)
             log.debug(
                 "cache_set cache_source=redis cache_key=%s cache_key_namespace=%s cache_ttl=%d",
                 key,
@@ -172,6 +212,7 @@ class RedisCacheClient:
             for key in self._client.scan_iter(match=pattern, count=500):
                 self._client.delete(key)
                 deleted += 1
+            self.stats.invalidation(namespace, deleted)
             log.info(
                 "cache_invalidation cache_key_namespace=%s cache_pattern=%s deleted=%d",
                 namespace,

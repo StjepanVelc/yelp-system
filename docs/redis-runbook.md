@@ -27,6 +27,7 @@ Check alert state via `GET /cache/stats` on each service.
 ```
 GET http://localhost:8001/cache/stats   # business-service
 GET http://localhost:8002/cache/stats   # recommendation-service
+GET http://localhost:8003/cache/stats   # ingestion-service invalidation stats
 ```
 
 **Response shape:**
@@ -40,14 +41,24 @@ GET http://localhost:8002/cache/stats   # recommendation-service
       "errors": 0,
       "hit_rate": 0.9156,
       "locks_acquired": 12,
-      "stampede_waits": 3
+      "stampede_waits": 3,
+      "latency_samples": 450,
+      "cache_latency_ms_total": 824.5,
+      "cache_latency_ms_avg": 1.83,
+      "invalidations": 2,
+      "invalidated_keys": 17
     }
   },
   "total": {
     "hits": 500,
     "misses": 50,
     "errors": 0,
-    "hit_rate": 0.9090
+    "hit_rate": 0.9090,
+    "latency_samples": 550,
+    "cache_latency_ms_total": 1001.2,
+    "cache_latency_ms_avg": 1.82,
+    "invalidations": 2,
+    "invalidated_keys": 17
   }
 }
 ```
@@ -64,6 +75,8 @@ GET http://localhost:8002/cache/stats   # recommendation-service
 | `cache_lock_acquire_failed` | Lock contention (normal under load) |
 | `cache_shadow` | Shadow mode: `cache_match=True/False` logged per request |
 | `cache_invalidation` | Pattern deleted after ingest write |
+
+For ingestion-service, the `/cache/stats` payload is invalidation-focused and reports `invalidations`, `invalidated_keys`, and `errors` per namespace.
 
 ---
 

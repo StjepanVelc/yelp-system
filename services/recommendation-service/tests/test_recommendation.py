@@ -194,3 +194,5 @@ class TestRecommendationCacheStatsEndpoint:
         assert "hits" in data["total"]
         assert "misses" in data["total"]
         assert "hit_rate" in data["total"]
+        assert "cache_latency_ms_avg" in data["total"]
+        assert "invalidations" in data["total"]

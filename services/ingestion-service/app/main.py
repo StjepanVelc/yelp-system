@@ -155,6 +155,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/cache/stats")
+def cache_stats():
+    from app.core.cache import cache_invalidator
+    return cache_invalidator.stats.snapshot()
+
+
 @app.get("/metrics")
 def metrics() -> Response:
     return metrics_response()

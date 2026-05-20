@@ -4,6 +4,7 @@ Tests for ingestion-service: parsers, loaders, service logic, and API endpoints.
 import json
 import io
 import pytest
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock, mock_open
 from fastapi.testclient import TestClient
 
@@ -183,14 +184,34 @@ class TestIngestionService:
         assert total >= 0
 
 
+class TestInvalidationStats:
+    def test_snapshot_tracks_invalidations_and_errors(self):
+        from app.core.cache import InvalidationStats
+        stats = InvalidationStats()
+        stats.invalidation("business.details", 3)
+        stats.error("recommendation.by_business")
+        snapshot = stats.snapshot()
+        assert snapshot["namespaces"]["business.details"]["invalidations"] == 1
+        assert snapshot["namespaces"]["business.details"]["invalidated_keys"] == 3
+        assert snapshot["namespaces"]["recommendation.by_business"]["errors"] == 1
+        assert snapshot["total"]["invalidations"] == 1
+        assert snapshot["total"]["invalidated_keys"] == 3
+        assert snapshot["total"]["errors"] == 1
+
+
 # ── API endpoint tests ─────────────────────────────────────────────────────────
 
 class TestIngestionAPI:
     @pytest.fixture
     def client(self):
         from app.main import app
-        with TestClient(app, raise_server_exceptions=False) as c:
-            yield c
+        original_startup = list(app.router.on_startup)
+        app.router.on_startup = []
+        try:
+            with TestClient(app, raise_server_exceptions=False) as c:
+                yield c
+        finally:
+            app.router.on_startup = original_startup
 
     def test_trigger_ingest_all(self, client):
         response = client.post("/ingest/all")
@@ -223,3 +244,62 @@ class TestIngestionAPI:
         response = client.post("/ingest/checkins")
         assert response.status_code == 200
         assert response.json()["dataset"] == "checkins"
+
+    def test_cache_stats_returns_200(self, client):
+        response = client.get("/cache/stats")
+        assert response.status_code == 200
+
+    def test_cache_stats_response_shape(self, client):
+        data = client.get("/cache/stats").json()
+        assert "total" in data
+        assert "namespaces" in data
+        assert "invalidations" in data["total"]
+        assert "invalidated_keys" in data["total"]
+        assert "errors" in data["total"]
+
+    def test_business_ingest_increments_cache_invalidation_stats(self, client):
+        from app.core.cache import InvalidationStats, cache_invalidator
+
+        cache_invalidator.stats = InvalidationStats()
+
+        def fake_delete_pattern(pattern, namespace):
+            deleted = 2
+            cache_invalidator.stats.invalidation(namespace, deleted)
+            return deleted
+
+        with patch("app.service.ingestion_service._ingest_stream", return_value=1), \
+             patch.object(cache_invalidator, "delete_pattern", side_effect=fake_delete_pattern), \
+             patch("app.db.session.SessionLocal", return_value=SimpleNamespace(close=lambda: None)):
+            response = client.post("/ingest/businesses")
+
+        assert response.status_code == 200
+
+        stats = client.get("/cache/stats").json()
+        assert stats["total"]["invalidations"] == 3
+        assert stats["total"]["invalidated_keys"] == 6
+        assert stats["namespaces"]["business.details"]["invalidations"] == 1
+        assert stats["namespaces"]["business.cities"]["invalidations"] == 1
+        assert stats["namespaces"]["recommendation.by_business"]["invalidations"] == 1
+
+    def test_review_ingest_increments_recommendation_invalidation_stats(self, client):
+        from app.core.cache import InvalidationStats, cache_invalidator
+
+        cache_invalidator.stats = InvalidationStats()
+
+        def fake_delete_pattern(pattern, namespace):
+            deleted = 4
+            cache_invalidator.stats.invalidation(namespace, deleted)
+            return deleted
+
+        with patch("app.service.ingestion_service._ingest_stream", return_value=1), \
+             patch.object(cache_invalidator, "delete_pattern", side_effect=fake_delete_pattern), \
+             patch("app.db.session.SessionLocal", return_value=SimpleNamespace(close=lambda: None)):
+            response = client.post("/ingest/reviews")
+
+        assert response.status_code == 200
+
+        stats = client.get("/cache/stats").json()
+        assert stats["total"]["invalidations"] == 1
+        assert stats["total"]["invalidated_keys"] == 4
+        assert stats["namespaces"]["recommendation.by_business"]["invalidations"] == 1
+        assert stats["namespaces"]["recommendation.by_business"]["invalidated_keys"] == 4

@@ -313,6 +313,19 @@ class TestCacheStats:
         s = stats.snapshot()
         assert s["namespaces"]["business.details"]["stampede_waits"] == 1
 
+    def test_latency_and_invalidation_tracked(self):
+        from app.core.cache import CacheStats
+        stats = CacheStats()
+        stats.latency("business.details", 12.5)
+        stats.latency("business.details", 7.5)
+        stats.invalidation("business.details", 3)
+        s = stats.snapshot()
+        assert s["namespaces"]["business.details"]["latency_samples"] == 2
+        assert s["namespaces"]["business.details"]["cache_latency_ms_total"] == 20.0
+        assert s["namespaces"]["business.details"]["cache_latency_ms_avg"] == 10.0
+        assert s["namespaces"]["business.details"]["invalidations"] == 1
+        assert s["namespaces"]["business.details"]["invalidated_keys"] == 3
+
     def test_multiple_namespaces_tracked_independently(self):
         from app.core.cache import CacheStats
         stats = CacheStats()
@@ -430,3 +443,5 @@ class TestCacheStatsEndpoint:
         assert "hits" in data["total"]
         assert "misses" in data["total"]
         assert "hit_rate" in data["total"]
+        assert "cache_latency_ms_avg" in data["total"]
+        assert "invalidations" in data["total"]

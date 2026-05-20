@@ -15,6 +15,9 @@ Globalne granice scopea:
 
 ## Faza 1 - Observability foundation
 
+### Status
+- ✅ Zavrseno (Maj 2026)
+
 ### Cilj
 Postaviti minimalni, ali koristan observability baseline kroz sve servise da odmah vidimo request flow, greske i latencije.
 
@@ -53,6 +56,9 @@ Postaviti minimalni, ali koristan observability baseline kroz sve servise da odm
 - ne raditi veliki tracing redesign
 
 ## Faza 2 - Cache hardening
+
+### Status
+- ✅ Zavrseno (Maj 2026)
 
 ### Cilj
 Ucvrstiti i izmjeriti postojeci Redis cache-aside bez promjene postojece semantike.
