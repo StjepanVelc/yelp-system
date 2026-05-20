@@ -238,10 +238,8 @@ class TestBusinessClient:
         mock_resp = make_mock_response(BUSINESS_LIST)
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.clients.business_client.get_shared_client", return_value=mock_client):
             result, headers = await business_client.get_businesses(city="Phoenix", min_stars=4.0, query="pizza", search_path="auto")
         assert result == BUSINESS_LIST
         assert headers["X-Search-Path"] in {"legacy", "fts", "trigram"}
@@ -253,10 +251,8 @@ class TestBusinessClient:
         mock_resp = make_mock_response(BUSINESS_DETAIL)
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.clients.business_client.get_shared_client", return_value=mock_client):
             result = await business_client.get_business("biz-001")
         assert result["id"] == "biz-001"
 
@@ -267,10 +263,8 @@ class TestBusinessClient:
         mock_resp = make_mock_response(["Philadelphia", "Tucson"])
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.clients.business_client.get_shared_client", return_value=mock_client):
             result = await business_client.get_cities()
         assert result == ["Philadelphia", "Tucson"]
 
@@ -285,9 +279,7 @@ class TestRecommendationClient:
         mock_resp = make_mock_response(RECOMMENDATIONS)
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.clients.recommendation_client.get_shared_client", return_value=mock_client):
             result = await recommendation_client.get_recommendations("biz-001")
         assert isinstance(result, list)

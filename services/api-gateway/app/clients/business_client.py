@@ -1,5 +1,5 @@
-import httpx
 from app.config import settings
+from app.clients.http_client import get_shared_client
 
 
 async def get_businesses(city=None, min_stars=None, query=None, search_path="auto", page=1, limit=20):
@@ -13,36 +13,36 @@ async def get_businesses(city=None, min_stars=None, query=None, search_path="aut
     if search_path:
         params["search_path"] = search_path
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{settings.business_service_url}/businesses", params=params)
-        response.raise_for_status()
-        headers = {
-            "X-Search-Path": response.headers.get("X-Search-Path", "legacy"),
-            "X-Search-Version": response.headers.get("X-Search-Version", "legacy"),
-            "X-Search-Latency-Ms": response.headers.get("X-Search-Latency-Ms", "0"),
-        }
-        return response.json(), headers
+    client = get_shared_client()
+    response = await client.get(f"{settings.business_service_url}/businesses", params=params)
+    response.raise_for_status()
+    headers = {
+        "X-Search-Path": response.headers.get("X-Search-Path", "legacy"),
+        "X-Search-Version": response.headers.get("X-Search-Version", "legacy"),
+        "X-Search-Latency-Ms": response.headers.get("X-Search-Latency-Ms", "0"),
+    }
+    return response.json(), headers
 
 
 async def get_cities():
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{settings.business_service_url}/businesses/cities")
-        response.raise_for_status()
-        return response.json()
+    client = get_shared_client()
+    response = await client.get(f"{settings.business_service_url}/businesses/cities")
+    response.raise_for_status()
+    return response.json()
 
 
 async def get_business(business_id: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{settings.business_service_url}/businesses/{business_id}")
-        response.raise_for_status()
-        return response.json()
+    client = get_shared_client()
+    response = await client.get(f"{settings.business_service_url}/businesses/{business_id}")
+    response.raise_for_status()
+    return response.json()
 
 
 async def get_reviews(business_id: str, page: int = 1, limit: int = 20):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.business_service_url}/businesses/{business_id}/reviews",
-            params={"page": page, "limit": limit},
-        )
-        response.raise_for_status()
-        return response.json()
+    client = get_shared_client()
+    response = await client.get(
+        f"{settings.business_service_url}/businesses/{business_id}/reviews",
+        params={"page": page, "limit": limit},
+    )
+    response.raise_for_status()
+    return response.json()

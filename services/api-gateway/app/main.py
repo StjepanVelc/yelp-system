@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
+from app.clients.http_client import close_shared_client
 from app.routes import business, recommendation
 from app.logger import get_logger
 from app.observability import (
@@ -26,7 +27,10 @@ SERVICE_NAME = "api-gateway"
 async def lifespan(app: FastAPI):
     init_tracing(SERVICE_NAME)
     log.info("API Gateway starting up")
-    yield
+    try:
+        yield
+    finally:
+        await close_shared_client()
 
 
 app = FastAPI(title="API Gateway", version="1.0.0", lifespan=lifespan)

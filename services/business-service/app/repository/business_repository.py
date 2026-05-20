@@ -1,4 +1,5 @@
 from sqlalchemy import text
+import time
 from app.core.logger import get_logger
 
 log = get_logger("business-service.repository")
@@ -310,11 +311,14 @@ def get_reviews(session, business_id: str, limit: int = 20, offset: int = 0):
 
 def get_user_status(session, user_id: str):
     log.debug("Fetching user status for user_id=%s", user_id)
+    started = time.perf_counter()
     result = session.execute(
         text("SELECT user_id FROM users WHERE user_id = :user_id"),
         {"user_id": user_id},
     )
     row = result.fetchone()
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    log.info("user_status_db_timing user_id=%s found=%s elapsed_ms=%.2f", user_id, bool(row), elapsed_ms)
 
     if row:
         return {

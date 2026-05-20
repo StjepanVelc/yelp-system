@@ -1,10 +1,14 @@
 from typing import Iterable
+import time
 
 import jwt
 from fastapi import HTTPException, Request
 
 from app.clients import user_status_client
 from app.config import settings
+from app.logger import get_logger
+
+log = get_logger("api-gateway.auth")
 
 
 def _auth_error(status_code: int, code: str, message: str) -> HTTPException:
@@ -82,21 +86,56 @@ async def ensure_user_is_active(payload: dict) -> None:
 
 def require_roles(required_roles: Iterable[str]):
     async def _dependency(request: Request) -> dict:
-        token = parse_bearer_token(request.headers.get("Authorization"))
-        payload = decode_token(token)
-        ensure_roles(payload, required_roles)
+        started_total = time.perf_counter()
+        parse_ms = 0.0
+        decode_ms = 0.0
+        role_check_ms = 0.0
+        user_status_ms = 0.0
+        status_code = 200
 
-        # Dev-only escape hatch for synthetic load tests.
-        if (
-            settings.app_env.lower() == "development"
-            and settings.enable_dev_load_test_bypass
-            and bool(payload.get("dev_load_test"))
-        ):
+        try:
+            started = time.perf_counter()
+            token = parse_bearer_token(request.headers.get("Authorization"))
+            parse_ms = (time.perf_counter() - started) * 1000
+
+            started = time.perf_counter()
+            payload = decode_token(token)
+            decode_ms = (time.perf_counter() - started) * 1000
+
+            started = time.perf_counter()
+            ensure_roles(payload, required_roles)
+            role_check_ms = (time.perf_counter() - started) * 1000
+
+            # Dev-only escape hatch for synthetic load tests.
+            if (
+                settings.app_env.lower() == "development"
+                and settings.enable_dev_load_test_bypass
+                and bool(payload.get("dev_load_test"))
+            ):
+                request.state.auth = payload
+                return payload
+
+            started = time.perf_counter()
+            await ensure_user_is_active(payload)
+            user_status_ms = (time.perf_counter() - started) * 1000
+
             request.state.auth = payload
             return payload
-
-        await ensure_user_is_active(payload)
-        request.state.auth = payload
-        return payload
+        except HTTPException as exc:
+            status_code = exc.status_code
+            raise
+        finally:
+            total_ms = (time.perf_counter() - started_total) * 1000
+            log.info(
+                "auth_timing method=%s path=%s status_code=%d parse_ms=%.2f decode_ms=%.2f role_check_ms=%.2f user_status_ms=%.2f total_ms=%.2f",
+                request.method,
+                request.url.path,
+                status_code,
+                parse_ms,
+                decode_ms,
+                role_check_ms,
+                user_status_ms,
+                total_ms,
+            )
 
     return _dependency
