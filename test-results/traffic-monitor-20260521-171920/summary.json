@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-05-21T17:20:21",
+  "target_url": "http://localhost:8001/businesses/cities",
+  "duration_s": 60,
+  "workers": 7,
+  "timeout_s": 6.0,
+  "think_ms": 0,
+  "total_requests": 210,
+  "total_ok": 210,
+  "total_errors": 0,
+  "success_rate": 100.0,
+  "avg_rps": 3.436038339342135,
+  "avg_ms": 2037.4701461921047,
+  "p95_ms": 2061.7846050241496,
+  "p99_ms": 2151.1593960470054
+}

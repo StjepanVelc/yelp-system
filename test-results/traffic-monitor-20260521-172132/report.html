@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traffic Monitor Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --line1: #22d3ee;
+      --line2: #f59e0b;
+      --line3: #ef4444;
+      --ok: #10b981;
+      --err: #ef4444;
+      --grid: #243244;
+    }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Tahoma, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 55%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1160px; margin: 24px auto; padding: 0 16px 40px; }
+    .title { font-size: 28px; margin: 4px 0 16px; }
+    .meta { color: var(--muted); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; }
+    .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .v { font-size: 28px; margin-top: 8px; }
+    .panel { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; margin-top: 14px; }
+    h3 { margin: 0 0 8px; }
+    svg { width: 100%; height: auto; background: #0b1220; border-radius: 10px; border: 1px solid #1f2937; }
+    .legend { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #1f2937; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Traffic Monitor Report</div>
+    <div class="meta">Generated: 2026-05-21T17:22:33 | Target: http://localhost:8003/health</div>
+
+    <div class="grid">
+      <div class="card"><div class="k">Total Requests</div><div class="v">210</div></div>
+      <div class="card"><div class="k">Success Rate</div><div class="v">100.0%</div></div>
+      <div class="card"><div class="k">Average RPS</div><div class="v">3.4</div></div>
+      <div class="card"><div class="k">P95 Latency</div><div class="v">2057.9 ms</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>RPS Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line1)" stroke-width="3" points="28.00,252.00 42.31,252.00 56.61,28.00 70.92,252.00 85.22,28.00 99.53,252.00 113.83,28.00 128.14,252.00 142.44,28.00 156.75,252.00 171.05,28.00 185.36,252.00 199.66,28.00 213.97,252.00 228.27,28.00 242.58,252.00 256.88,28.00 271.19,252.00 285.49,28.00 299.80,252.00 314.10,28.00 328.41,252.00 342.71,28.00 357.02,252.00 371.32,28.00 385.63,252.00 399.93,28.00 414.24,252.00 428.54,28.00 442.85,252.00 457.15,28.00 471.46,252.00 485.76,28.00 500.07,252.00 514.37,28.00 528.68,252.00 542.98,28.00 557.29,252.00 571.59,28.00 585.90,252.00 600.20,28.00 614.51,252.00 628.81,28.00 643.12,252.00 657.42,28.00 671.73,252.00 686.03,28.00 700.34,252.00 714.64,28.00 728.95,252.00 743.25,28.00 757.56,252.00 771.86,60.00 786.17,220.00 800.47,60.00 814.78,220.00 829.08,60.00 843.39,220.00 857.69,60.00 872.00,220.00"></polyline>
+      </svg>
+      <div class="legend">Line: requests per second</div>
+    </div>
+
+    <div class="panel">
+      <h3>Latency Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line2)" stroke-width="3" points="28.00,252.00 42.31,252.00 56.61,28.00 70.92,252.00 85.22,38.69 99.53,252.00 113.83,39.05 128.14,252.00 142.44,39.11 156.75,252.00 171.05,38.89 185.36,252.00 199.66,38.92 213.97,252.00 228.27,37.82 242.58,252.00 256.88,38.29 271.19,252.00 285.49,37.96 299.80,252.00 314.10,39.30 328.41,252.00 342.71,38.99 357.02,252.00 371.32,39.23 385.63,252.00 399.93,39.13 414.24,252.00 428.54,39.71 442.85,252.00 457.15,39.57 471.46,252.00 485.76,38.54 500.07,252.00 514.37,39.33 528.68,252.00 542.98,38.64 557.29,252.00 571.59,39.06 585.90,252.00 600.20,38.66 614.51,252.00 628.81,39.06 643.12,252.00 657.42,39.52 671.73,252.00 686.03,36.24 700.34,252.00 714.64,36.84 728.95,252.00 743.25,37.79 757.56,252.00 771.86,38.21 786.17,36.82 800.47,39.70 814.78,36.17 829.08,39.21 843.39,39.10 857.69,38.84 872.00,36.91"></polyline>
+        <polyline fill="none" stroke="var(--line3)" stroke-width="2" points="28.00,252.00 42.31,252.00 56.61,28.00 70.92,252.00 85.22,39.18 99.53,252.00 113.83,39.24 128.14,252.00 142.44,38.88 156.75,252.00 171.05,38.86 185.36,252.00 199.66,38.82 213.97,252.00 228.27,37.49 242.58,252.00 256.88,38.39 271.19,252.00 285.49,38.27 299.80,252.00 314.10,38.81 328.41,252.00 342.71,39.46 357.02,252.00 371.32,38.42 385.63,252.00 399.93,39.86 414.24,252.00 428.54,39.97 442.85,252.00 457.15,39.71 471.46,252.00 485.76,39.23 500.07,252.00 514.37,39.64 528.68,252.00 542.98,38.89 557.29,252.00 571.59,39.04 585.90,252.00 600.20,37.99 614.51,252.00 628.81,39.20 643.12,252.00 657.42,39.42 671.73,252.00 686.03,35.81 700.34,252.00 714.64,35.85 728.95,252.00 743.25,37.41 757.56,252.00 771.86,38.81 786.17,38.05 800.47,39.13 814.78,37.42 829.08,39.00 843.39,40.32 857.69,38.85 872.00,38.14"></polyline>
+      </svg>
+      <div class="legend">Orange: avg latency, Red: p95 latency (ms)</div>
+    </div>
+
+    <div class="panel">
+      <h3>Second-by-Second Timeline</h3>
+      <table>
+        <thead><tr><th>Second</th><th>RPS</th><th>OK</th><th>Errors</th><th>Avg ms</th><th>P95 ms</th></tr></thead>
+        <tbody><tr><td>1</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>2</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>3</td><td>7.0</td><td>7</td><td>0</td><td>2132.7</td><td>2145.0</td></tr>
+<tr><td>4</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>5</td><td>7.0</td><td>7</td><td>0</td><td>2031.0</td><td>2038.0</td></tr>
+<tr><td>6</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>7</td><td>7.0</td><td>7</td><td>0</td><td>2027.5</td><td>2037.4</td></tr>
+<tr><td>8</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>9</td><td>7.0</td><td>7</td><td>0</td><td>2027.0</td><td>2040.9</td></tr>
+<tr><td>10</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>11</td><td>7.0</td><td>7</td><td>0</td><td>2029.0</td><td>2041.1</td></tr>
+<tr><td>12</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>13</td><td>7.0</td><td>7</td><td>0</td><td>2028.7</td><td>2041.4</td></tr>
+<tr><td>14</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>15</td><td>7.0</td><td>7</td><td>0</td><td>2039.2</td><td>2054.2</td></tr>
+<tr><td>16</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>17</td><td>7.0</td><td>7</td><td>0</td><td>2034.7</td><td>2045.5</td></tr>
+<tr><td>18</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>19</td><td>7.0</td><td>7</td><td>0</td><td>2037.9</td><td>2046.6</td></tr>
+<tr><td>20</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>21</td><td>7.0</td><td>7</td><td>0</td><td>2025.1</td><td>2041.5</td></tr>
+<tr><td>22</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>23</td><td>7.0</td><td>7</td><td>0</td><td>2028.0</td><td>2035.3</td></tr>
+<tr><td>24</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>25</td><td>7.0</td><td>7</td><td>0</td><td>2025.8</td><td>2045.2</td></tr>
+<tr><td>26</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>27</td><td>7.0</td><td>7</td><td>0</td><td>2026.7</td><td>2031.5</td></tr>
+<tr><td>28</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>29</td><td>7.0</td><td>7</td><td>0</td><td>2021.2</td><td>2030.5</td></tr>
+<tr><td>30</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>31</td><td>7.0</td><td>7</td><td>0</td><td>2022.5</td><td>2032.9</td></tr>
+<tr><td>32</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>33</td><td>7.0</td><td>7</td><td>0</td><td>2032.4</td><td>2037.5</td></tr>
+<tr><td>34</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>35</td><td>7.0</td><td>7</td><td>0</td><td>2024.8</td><td>2033.6</td></tr>
+<tr><td>36</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>37</td><td>7.0</td><td>7</td><td>0</td><td>2031.4</td><td>2040.7</td></tr>
+<tr><td>38</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>39</td><td>7.0</td><td>7</td><td>0</td><td>2027.4</td><td>2039.3</td></tr>
+<tr><td>40</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>41</td><td>7.0</td><td>7</td><td>0</td><td>2031.2</td><td>2049.4</td></tr>
+<tr><td>42</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>43</td><td>7.0</td><td>7</td><td>0</td><td>2027.4</td><td>2037.7</td></tr>
+<tr><td>44</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>45</td><td>7.0</td><td>7</td><td>0</td><td>2023.0</td><td>2035.7</td></tr>
+<tr><td>46</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>47</td><td>7.0</td><td>7</td><td>0</td><td>2054.3</td><td>2070.3</td></tr>
+<tr><td>48</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>49</td><td>7.0</td><td>7</td><td>0</td><td>2048.5</td><td>2069.9</td></tr>
+<tr><td>50</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>51</td><td>7.0</td><td>7</td><td>0</td><td>2039.5</td><td>2054.9</td></tr>
+<tr><td>52</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>53</td><td>6.0</td><td>6</td><td>0</td><td>2035.5</td><td>2041.5</td></tr>
+<tr><td>54</td><td>1.0</td><td>1</td><td>0</td><td>2048.8</td><td>2048.8</td></tr>
+<tr><td>55</td><td>6.0</td><td>6</td><td>0</td><td>2021.3</td><td>2038.4</td></tr>
+<tr><td>56</td><td>1.0</td><td>1</td><td>0</td><td>2054.9</td><td>2054.9</td></tr>
+<tr><td>57</td><td>6.0</td><td>6</td><td>0</td><td>2025.9</td><td>2039.7</td></tr>
+<tr><td>58</td><td>1.0</td><td>1</td><td>0</td><td>2027.0</td><td>2027.0</td></tr>
+<tr><td>59</td><td>6.0</td><td>6</td><td>0</td><td>2029.5</td><td>2041.1</td></tr>
+<tr><td>60</td><td>1.0</td><td>1</td><td>0</td><td>2047.9</td><td>2047.9</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3>Run Dialogue / Phases</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Phase</th><th>Message</th></tr></thead>
+        <tbody><tr><td>17:21:32</td><td>PREPARE</td><td>Creating worker pool and output folders</td></tr>
+<tr><td>17:21:32</td><td>PREPARE</td><td>Target URL: http://localhost:8003/health</td></tr>
+<tr><td>17:21:32</td><td>PREPARE</td><td>Workers=7, Duration=60s, Timeout=6.0s</td></tr>
+<tr><td>17:21:32</td><td>RUN</td><td>Starting traffic generation</td></tr>
+<tr><td>17:21:33</td><td>RUN</td><td>Warm phase complete, full measurement active</td></tr>
+<tr><td>17:22:02</td><td>RUN</td><td>Halfway point reached, continuing collection</td></tr>
+<tr><td>17:22:33</td><td>FINALIZE</td><td>Writing summary.json, timeline.csv, events.log and report.html</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

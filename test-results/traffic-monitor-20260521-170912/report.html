@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traffic Monitor Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --line1: #22d3ee;
+      --line2: #f59e0b;
+      --line3: #ef4444;
+      --ok: #10b981;
+      --err: #ef4444;
+      --grid: #243244;
+    }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Tahoma, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 55%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1160px; margin: 24px auto; padding: 0 16px 40px; }
+    .title { font-size: 28px; margin: 4px 0 16px; }
+    .meta { color: var(--muted); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; }
+    .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .v { font-size: 28px; margin-top: 8px; }
+    .panel { background: rgba(17,24,39,.85); border: 1px solid #1f2937; border-radius: 12px; padding: 14px; margin-top: 14px; }
+    h3 { margin: 0 0 8px; }
+    svg { width: 100%; height: auto; background: #0b1220; border-radius: 10px; border: 1px solid #1f2937; }
+    .legend { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #1f2937; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Traffic Monitor Report</div>
+    <div class="meta">Generated: 2026-05-21T17:09:47 | Target: http://localhost:8002/recommendations/Pns2l4eNsfO8kk83dixA6A?limit=5</div>
+
+    <div class="grid">
+      <div class="card"><div class="k">Total Requests</div><div class="v">85</div></div>
+      <div class="card"><div class="k">Success Rate</div><div class="v">100.0%</div></div>
+      <div class="card"><div class="k">Average RPS</div><div class="v">2.4</div></div>
+      <div class="card"><div class="k">P95 Latency</div><div class="v">2471.1 ms</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>RPS Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line1)" stroke-width="3" points="28.00,252.00 52.82,252.00 77.65,28.00 102.47,252.00 127.29,28.00 152.12,252.00 176.94,28.00 201.76,252.00 226.59,28.00 251.41,252.00 276.24,28.00 301.06,252.00 325.88,72.80 350.71,207.20 375.53,162.40 400.35,117.60 425.18,207.20 450.00,72.80 474.82,207.20 499.65,72.80 524.47,207.20 549.29,72.80 574.12,207.20 598.94,72.80 623.76,207.20 648.59,72.80 673.41,252.00 698.24,28.00 723.06,252.00 747.88,28.00 772.71,252.00 797.53,28.00 822.35,252.00 847.18,28.00 872.00,252.00"></polyline>
+      </svg>
+      <div class="legend">Line: requests per second</div>
+    </div>
+
+    <div class="panel">
+      <h3>Latency Over Time</h3>
+      <svg viewBox="0 0 900 280" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--line2)" stroke-width="3" points="28.00,252.00 52.82,252.00 77.65,28.00 102.47,252.00 127.29,85.39 152.12,252.00 176.94,85.11 201.76,252.00 226.59,85.33 251.41,252.00 276.24,85.49 301.06,252.00 325.88,85.80 350.71,85.24 375.53,86.30 400.35,85.21 425.18,84.56 450.00,85.84 474.82,83.86 499.65,85.32 524.47,84.63 549.29,84.81 574.12,84.70 598.94,84.59 623.76,85.95 648.59,85.18 673.41,252.00 698.24,85.75 723.06,252.00 747.88,85.84 772.71,252.00 797.53,84.79 822.35,252.00 847.18,85.47 872.00,252.00"></polyline>
+        <polyline fill="none" stroke="var(--line3)" stroke-width="2" points="28.00,252.00 52.82,252.00 77.65,28.00 102.47,252.00 127.29,87.46 152.12,252.00 176.94,86.06 201.76,252.00 226.59,87.29 251.41,252.00 276.24,87.13 301.06,252.00 325.88,87.63 350.71,87.86 375.53,87.67 400.35,85.55 425.18,87.19 450.00,87.77 474.82,86.50 499.65,86.79 524.47,87.26 549.29,86.46 574.12,87.33 598.94,86.42 623.76,88.56 648.59,87.26 673.41,252.00 698.24,88.02 723.06,252.00 747.88,87.17 772.71,252.00 797.53,85.20 822.35,252.00 847.18,86.92 872.00,252.00"></polyline>
+      </svg>
+      <div class="legend">Orange: avg latency, Red: p95 latency (ms)</div>
+    </div>
+
+    <div class="panel">
+      <h3>Second-by-Second Timeline</h3>
+      <table>
+        <thead><tr><th>Second</th><th>RPS</th><th>OK</th><th>Errors</th><th>Avg ms</th><th>P95 ms</th></tr></thead>
+        <tbody><tr><td>1</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>2</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>3</td><td>5.0</td><td>5</td><td>0</td><td>2740.9</td><td>2784.6</td></tr>
+<tr><td>4</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>5</td><td>5.0</td><td>5</td><td>0</td><td>2038.7</td><td>2045.5</td></tr>
+<tr><td>6</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>7</td><td>5.0</td><td>5</td><td>0</td><td>2042.1</td><td>2062.9</td></tr>
+<tr><td>8</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>9</td><td>5.0</td><td>5</td><td>0</td><td>2039.4</td><td>2047.6</td></tr>
+<tr><td>10</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>11</td><td>5.0</td><td>5</td><td>0</td><td>2037.5</td><td>2049.6</td></tr>
+<tr><td>12</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>13</td><td>4.0</td><td>4</td><td>0</td><td>2033.7</td><td>2043.4</td></tr>
+<tr><td>14</td><td>1.0</td><td>1</td><td>0</td><td>2040.5</td><td>2040.5</td></tr>
+<tr><td>15</td><td>2.0</td><td>2</td><td>0</td><td>2027.5</td><td>2042.8</td></tr>
+<tr><td>16</td><td>3.0</td><td>3</td><td>0</td><td>2040.9</td><td>2069.2</td></tr>
+<tr><td>17</td><td>1.0</td><td>1</td><td>0</td><td>2048.8</td><td>2048.8</td></tr>
+<tr><td>18</td><td>4.0</td><td>4</td><td>0</td><td>2033.2</td><td>2041.6</td></tr>
+<tr><td>19</td><td>1.0</td><td>1</td><td>0</td><td>2057.4</td><td>2057.4</td></tr>
+<tr><td>20</td><td>4.0</td><td>4</td><td>0</td><td>2039.5</td><td>2053.8</td></tr>
+<tr><td>21</td><td>1.0</td><td>1</td><td>0</td><td>2047.9</td><td>2047.9</td></tr>
+<tr><td>22</td><td>4.0</td><td>4</td><td>0</td><td>2045.8</td><td>2057.9</td></tr>
+<tr><td>23</td><td>1.0</td><td>1</td><td>0</td><td>2047.1</td><td>2047.1</td></tr>
+<tr><td>24</td><td>4.0</td><td>4</td><td>0</td><td>2048.5</td><td>2058.5</td></tr>
+<tr><td>25</td><td>1.0</td><td>1</td><td>0</td><td>2031.8</td><td>2031.8</td></tr>
+<tr><td>26</td><td>4.0</td><td>4</td><td>0</td><td>2041.2</td><td>2048.0</td></tr>
+<tr><td>27</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>28</td><td>5.0</td><td>5</td><td>0</td><td>2034.3</td><td>2038.5</td></tr>
+<tr><td>29</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>30</td><td>5.0</td><td>5</td><td>0</td><td>2033.2</td><td>2049.0</td></tr>
+<tr><td>31</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>32</td><td>5.0</td><td>5</td><td>0</td><td>2046.1</td><td>2073.6</td></tr>
+<tr><td>33</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>34</td><td>5.0</td><td>5</td><td>0</td><td>2037.7</td><td>2052.2</td></tr>
+<tr><td>35</td><td>0.0</td><td>0</td><td>0</td><td>0.0</td><td>0.0</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h3>Run Dialogue / Phases</h3>
+      <table>
+        <thead><tr><th>Time</th><th>Phase</th><th>Message</th></tr></thead>
+        <tbody><tr><td>17:09:12</td><td>PREPARE</td><td>Creating worker pool and output folders</td></tr>
+<tr><td>17:09:12</td><td>PREPARE</td><td>Target URL: http://localhost:8002/recommendations/Pns2l4eNsfO8kk83dixA6A?limit=5</td></tr>
+<tr><td>17:09:12</td><td>PREPARE</td><td>Workers=5, Duration=35s, Timeout=6.0s</td></tr>
+<tr><td>17:09:12</td><td>RUN</td><td>Starting traffic generation</td></tr>
+<tr><td>17:09:13</td><td>RUN</td><td>Warm phase complete, full measurement active</td></tr>
+<tr><td>17:09:29</td><td>RUN</td><td>Halfway point reached, continuing collection</td></tr>
+<tr><td>17:09:47</td><td>FINALIZE</td><td>Writing summary.json, timeline.csv, events.log and report.html</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

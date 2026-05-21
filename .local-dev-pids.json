@@ -1,22 +1,22 @@
 [
     {
         "name":  "business-service",
-        "pid":  15052
+        "pid":  15140
     },
     {
         "name":  "recommendation-service",
-        "pid":  4160
+        "pid":  15780
     },
     {
         "name":  "ingestion-service",
-        "pid":  33292
+        "pid":  29180
     },
     {
         "name":  "api-gateway",
-        "pid":  1788
+        "pid":  33464
     },
     {
         "name":  "frontend",
-        "pid":  21628
+        "pid":  16456
     }
 ]

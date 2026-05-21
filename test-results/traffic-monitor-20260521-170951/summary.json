@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-05-21T17:10:28",
+  "target_url": "http://localhost:8003/health",
+  "duration_s": 35,
+  "workers": 5,
+  "timeout_s": 6.0,
+  "think_ms": 0,
+  "total_requests": 90,
+  "total_ok": 90,
+  "total_errors": 0,
+  "success_rate": 100.0,
+  "avg_rps": 2.4598058340845874,
+  "avg_ms": 2034.3746188846935,
+  "p95_ms": 2067.1111699834,
+  "p99_ms": 2095.544276990695
+}
