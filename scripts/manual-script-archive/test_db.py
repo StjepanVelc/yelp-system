@@ -1,8 +1,19 @@
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 from sqlalchemy import create_engine, text
+
+
+def find_repo_root(start: Path) -> Optional[Path]:
+    """Walk upward to locate repository root by known project files."""
+    markers = {"docker-compose.yml", "README.md"}
+    current = start.resolve()
+    for candidate in [current, *current.parents]:
+        if all((candidate / marker).exists() for marker in markers):
+            return candidate
+    return None
 
 def load_dotenv(path: Path) -> None:
     if not path.exists():
@@ -39,7 +50,10 @@ def resolve_database_url() -> str:
     return "postgresql://postgres:change_me@localhost:5432/yelp"
 
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+repo_root = find_repo_root(Path(__file__).resolve().parent)
+if repo_root:
+    load_dotenv(repo_root / ".env")
+    load_dotenv(repo_root / ".env.local")
 
 database_url = resolve_database_url()
 e = create_engine(database_url)
