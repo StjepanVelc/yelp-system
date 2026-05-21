@@ -97,6 +97,9 @@ Ucvrstiti i izmjeriti postojeci Redis cache-aside bez promjene postojece semanti
 
 ## Faza 3 - Debezium + Kafka CDC invalidation
 
+### Status
+- 🔶 Nije jos spremno za implementaciju bez dodatnog scaffolding-a
+
 ### Cilj
 Uvesti event-driven invalidation Redis kljuceva na promjene u tablicama businesses i reviews.
 
@@ -151,6 +154,45 @@ Redis delete je idempotentan:
 - ne uvoditi search invalidation
 - ne uvoditi full replay/backfill kao MVP uvjet
 - ne uvoditi striktni exactly-once requirement u MVP
+
+### Pre-flight checklist prije starta
+
+#### Preporučeni redoslijed rada
+
+1. Podesiti PostgreSQL za logical replication i dodati Kafka/Debezium infrastrukturu u `docker-compose.yml`.
+2. Dodati `services/cdc-consumer/` kao zaseban servis ili modul i spojiti ga na Kafka topic.
+3. Dodati environment varijable i dokumentirati ih u `docs/environment-variables.md`.
+4. Definirati payload shape i točan invalidation mapping za `businesses` i `reviews`.
+5. Dodati fallback ponašanje za outage/restart i tek onda end-to-end testove.
+
+#### Konkretni taskovi po datotekama
+
+- `docker-compose.yml`:
+  - Kafka broker
+  - Debezium connect servis
+  - CDC consumer servis
+  - PostgreSQL command override za logical replication
+- `services/cdc-consumer/`:
+  - consumer bootstrap
+  - Kafka subscription
+  - event parsing i routing po tablici
+  - Redis invalidation pozivi
+- `docs/environment-variables.md`:
+  - CDC-specific env varovi
+  - Kafka bootstrap server, topic imena, consumer group, polling timeout
+- `docs/redis-runbook.md`:
+  - CDC outage procedure
+  - očekivano stale window ponašanje
+
+#### Definition of Ready za Fazu 3
+
+- [ ] Infrastruktura za Kafka i Debezium postoji u compose setupu
+- [ ] PostgreSQL ima logical replication postavke
+- [ ] CDC consumer može startati lokalno bez ručnih koraka
+- [ ] Known topic names i payload schema su zapisani
+- [ ] Invalidation mapping za `businesses` i `reviews` je jednoznačan
+- [ ] Fallback ponašanje za consumer outage je definirano
+- [ ] Jedan minimalni E2E test ili smoke test je dodan
 
 ## Faza 4 - Load testing + dashboards
 

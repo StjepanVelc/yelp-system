@@ -57,20 +57,47 @@ def fetch_businesses_with_meta(session, city, state, min_stars, query, search_pa
 
 
 def fetch_business_by_id(session, business_id: str):
+    started_total = time.perf_counter()
     key = make_cache_key("yelp", settings.app_env, "business", "details", business_id, "v1")
+    cache_hit = False
+    cache_source = "db"
 
     if not _should_use_cache(business_id):
-        return get_business_by_id(session, business_id)
+        result = get_business_by_id(session, business_id)
+        log.info(
+            "business_details_timing business_id=%s cache_hit=%s cache_source=%s total_ms=%.2f",
+            business_id,
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
+        return result
 
     if settings.cache_shadow_mode:
         result = get_business_by_id(session, business_id)
         cached = cache_client.get_json(key, namespace="business.details")
         if cached is not None:
             log.info("cache_shadow namespace=business.details cache_match=%s", cached == result)
+        log.info(
+            "business_details_timing business_id=%s cache_hit=%s cache_source=%s total_ms=%.2f",
+            business_id,
+            cache_hit,
+            "db_shadow",
+            (time.perf_counter() - started_total) * 1000,
+        )
         return result
 
     cached = cache_client.get_json(key, namespace="business.details")
     if isinstance(cached, dict):
+        cache_hit = True
+        cache_source = "redis"
+        log.info(
+            "business_details_timing business_id=%s cache_hit=%s cache_source=%s total_ms=%.2f",
+            business_id,
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
         return cached
 
     lock_key = f"lock:{key}"
@@ -80,12 +107,28 @@ def fetch_business_by_id(session, business_id: str):
         time.sleep(0.05)
         cached = cache_client.get_json(key, namespace="business.details")
         if isinstance(cached, dict):
+            cache_hit = True
+            cache_source = "redis_after_wait"
+            log.info(
+                "business_details_timing business_id=%s cache_hit=%s cache_source=%s total_ms=%.2f",
+                business_id,
+                cache_hit,
+                cache_source,
+                (time.perf_counter() - started_total) * 1000,
+            )
             return cached
 
     try:
         business = get_business_by_id(session, business_id)
         if business is not None:
             cache_client.set_json(key, business, ttl_seconds=DETAILS_TTL_SECONDS, namespace="business.details")
+        log.info(
+            "business_details_timing business_id=%s cache_hit=%s cache_source=%s total_ms=%.2f",
+            business_id,
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
         return business
     finally:
         if lock_acquired:
@@ -93,8 +136,18 @@ def fetch_business_by_id(session, business_id: str):
 
 
 def fetch_cities(session):
+    started_total = time.perf_counter()
+    cache_hit = False
+    cache_source = "db"
     if settings.cache_rollout_percent <= 0:
-        return get_cities(session)
+        result = get_cities(session)
+        log.info(
+            "business_cities_timing cache_hit=%s cache_source=%s total_ms=%.2f",
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
+        return result
 
     key = make_cache_key("yelp", settings.app_env, "business", "cities", "all", "v1")
 
@@ -103,10 +156,24 @@ def fetch_cities(session):
         cached = cache_client.get_json(key, namespace="business.cities")
         if cached is not None:
             log.info("cache_shadow namespace=business.cities cache_match=%s", cached == result)
+        log.info(
+            "business_cities_timing cache_hit=%s cache_source=%s total_ms=%.2f",
+            cache_hit,
+            "db_shadow",
+            (time.perf_counter() - started_total) * 1000,
+        )
         return result
 
     cached = cache_client.get_json(key, namespace="business.cities")
     if isinstance(cached, list):
+        cache_hit = True
+        cache_source = "redis"
+        log.info(
+            "business_cities_timing cache_hit=%s cache_source=%s total_ms=%.2f",
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
         return cached
 
     lock_key = f"lock:{key}"
@@ -116,11 +183,25 @@ def fetch_cities(session):
         time.sleep(0.05)
         cached = cache_client.get_json(key, namespace="business.cities")
         if isinstance(cached, list):
+            cache_hit = True
+            cache_source = "redis_after_wait"
+            log.info(
+                "business_cities_timing cache_hit=%s cache_source=%s total_ms=%.2f",
+                cache_hit,
+                cache_source,
+                (time.perf_counter() - started_total) * 1000,
+            )
             return cached
 
     try:
         cities = get_cities(session)
         cache_client.set_json(key, cities, ttl_seconds=CITIES_TTL_SECONDS, namespace="business.cities")
+        log.info(
+            "business_cities_timing cache_hit=%s cache_source=%s total_ms=%.2f",
+            cache_hit,
+            cache_source,
+            (time.perf_counter() - started_total) * 1000,
+        )
         return cities
     finally:
         if lock_acquired:
@@ -133,4 +214,11 @@ def fetch_reviews(session, business_id: str, page: int = 1, limit: int = 20):
 
 
 def fetch_user_status(session, user_id: str):
-    return get_user_status(session, user_id)
+    started_total = time.perf_counter()
+    result = get_user_status(session, user_id)
+    log.info(
+        "business_user_status_timing user_id=%s total_ms=%.2f",
+        user_id,
+        (time.perf_counter() - started_total) * 1000,
+    )
+    return result

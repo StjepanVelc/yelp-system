@@ -176,11 +176,13 @@ switch ($Action) {
         if ($databaseUrl -match "postgresql://user:") {
             Write-Host "Warning: DATABASE_URL uses username 'user'. If your local DB user is 'postgres', update .env accordingly." -ForegroundColor Yellow
         }
-        $businessGrpc = if ($env:BUSINESS_SERVICE_GRPC) { $env:BUSINESS_SERVICE_GRPC } else { "localhost:50051" }
-        $businessServiceUrl = if ($env:BUSINESS_SERVICE_URL) { $env:BUSINESS_SERVICE_URL } else { "http://localhost:8001" }
-        $recommendationServiceUrl = if ($env:RECOMMENDATION_SERVICE_URL) { $env:RECOMMENDATION_SERVICE_URL } else { "http://localhost:8002" }
-        $ingestionServiceUrl = if ($env:INGESTION_SERVICE_URL) { $env:INGESTION_SERVICE_URL } else { "http://localhost:8003" }
-        $userServiceUrl = if ($env:USER_SERVICE_URL) { $env:USER_SERVICE_URL } else { "http://localhost:8001" }
+        $businessGrpc = if ($env:BUSINESS_SERVICE_GRPC) { $env:BUSINESS_SERVICE_GRPC } else { "127.0.0.1:50051" }
+        $redisPassword = if ($env:REDIS_PASSWORD) { $env:REDIS_PASSWORD } else { "dev_redis_pass" }
+        $redisUrl = if ($env:REDIS_URL) { $env:REDIS_URL } else { "redis://:$redisPassword@localhost:6379/0" }
+        $businessServiceUrl = if ($env:BUSINESS_SERVICE_URL) { $env:BUSINESS_SERVICE_URL } else { "http://127.0.0.1:8001" }
+        $recommendationServiceUrl = if ($env:RECOMMENDATION_SERVICE_URL) { $env:RECOMMENDATION_SERVICE_URL } else { "http://127.0.0.1:8002" }
+        $ingestionServiceUrl = if ($env:INGESTION_SERVICE_URL) { $env:INGESTION_SERVICE_URL } else { "http://127.0.0.1:8003" }
+        $userServiceUrl = if ($env:USER_SERVICE_URL) { $env:USER_SERVICE_URL } else { "http://127.0.0.1:8001" }
         $ingestionDataPath = if ($env:DATA_PATH) { $env:DATA_PATH } else { "infrastructure/data/raw" }
         $jwtSecret = if ($env:JWT_SECRET) { $env:JWT_SECRET } else { "dev-secret-change-me" }
         $jwtAlgorithm = if ($env:JWT_ALGORITHM) { $env:JWT_ALGORITHM } else { "HS256" }
@@ -189,9 +191,9 @@ switch ($Action) {
         $businessRequiredRoles = if ($env:BUSINESS_REQUIRED_ROLES) { $env:BUSINESS_REQUIRED_ROLES } else { "business:read" }
         $recommendationRequiredRoles = if ($env:RECOMMENDATION_REQUIRED_ROLES) { $env:RECOMMENDATION_REQUIRED_ROLES } else { "recommendation:read" }
 
-        $businessCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
-        $recommendationCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
-        $ingestionCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:DATA_PATH='$(ConvertTo-EscapedQuote $ingestionDataPath)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/ingestion-service --host 0.0.0.0 --port 8003"
+        $businessCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:REDIS_ENABLED='true'; `$env:REDIS_URL='$(ConvertTo-EscapedQuote $redisUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/business-service --host 0.0.0.0 --port 8001"
+        $recommendationCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:BUSINESS_SERVICE_GRPC='$(ConvertTo-EscapedQuote $businessGrpc)'; `$env:REDIS_ENABLED='true'; `$env:REDIS_URL='$(ConvertTo-EscapedQuote $redisUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/recommendation-service --host 0.0.0.0 --port 8002"
+        $ingestionCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:DATABASE_URL='$(ConvertTo-EscapedQuote $databaseUrl)'; `$env:DATA_PATH='$(ConvertTo-EscapedQuote $ingestionDataPath)'; `$env:REDIS_ENABLED='true'; `$env:REDIS_URL='$(ConvertTo-EscapedQuote $redisUrl)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/ingestion-service --host 0.0.0.0 --port 8003"
         $gatewayCmd = "`$env:PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION='python'; `$env:BUSINESS_SERVICE_URL='$(ConvertTo-EscapedQuote $businessServiceUrl)'; `$env:RECOMMENDATION_SERVICE_URL='$(ConvertTo-EscapedQuote $recommendationServiceUrl)'; `$env:USER_SERVICE_URL='$(ConvertTo-EscapedQuote $userServiceUrl)'; `$env:JWT_SECRET='$(ConvertTo-EscapedQuote $jwtSecret)'; `$env:JWT_ALGORITHM='$(ConvertTo-EscapedQuote $jwtAlgorithm)'; `$env:JWT_ISSUER='$(ConvertTo-EscapedQuote $jwtIssuer)'; `$env:JWT_AUDIENCE='$(ConvertTo-EscapedQuote $jwtAudience)'; `$env:BUSINESS_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $businessRequiredRoles)'; `$env:RECOMMENDATION_REQUIRED_ROLES='$(ConvertTo-EscapedQuote $recommendationRequiredRoles)'; & '$PythonExe' -m uvicorn app.main:app --app-dir services/api-gateway --host 0.0.0.0 --port 8000"
         $frontendCmd = "npm --prefix services/frontend run dev -- --hostname 0.0.0.0 --port 3000"
 

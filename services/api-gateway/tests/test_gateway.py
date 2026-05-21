@@ -283,3 +283,23 @@ class TestRecommendationClient:
         with patch("app.clients.recommendation_client.get_shared_client", return_value=mock_client):
             result = await recommendation_client.get_recommendations("biz-001")
         assert isinstance(result, list)
+
+
+class TestUserStatusClient:
+    @pytest.mark.anyio
+    async def test_get_user_status_uses_cache(self, monkeypatch):
+        from app.clients import user_status_client
+
+        user_status_client.clear_user_status_cache()
+        monkeypatch.setattr(settings, "user_status_cache_ttl_seconds", 60.0)
+
+        mock_resp = make_mock_response({"active": True, "deleted": False, "deleted_at": None})
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_resp)
+
+        with patch("app.clients.user_status_client.get_shared_client", return_value=mock_client):
+            first = await user_status_client.get_user_status("qVc8ODYU5SZjKXVBgXdI7w")
+            second = await user_status_client.get_user_status("qVc8ODYU5SZjKXVBgXdI7w")
+
+        assert first == second
+        assert mock_client.get.await_count == 1
