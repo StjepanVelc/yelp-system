@@ -1,5 +1,12 @@
 # Redis Cache — Contract & Design Reference
 
+Document boundary:
+
+- technical cache contract and key/TTL design
+- cache behavior, rollout semantics, and stats schema
+- no incident response procedures (see runbook)
+- no project completion narrative (see production hardening report)
+
 ## Cached Endpoints
 
 Cache-aside pattern covers three read routes:
@@ -106,29 +113,4 @@ On ingestion-service, `/cache/stats` focuses on invalidation activity triggered 
 
 Configured limit: 256 MB with `allkeys-lru` eviction. Working set in practice is much smaller.
 
-## Performance Baseline
-
-Measurement date: 2026-05-02
-
-| KPI | Pre-cache (from runtime logs) | Post-cache (steady state) |
-|---|---|---|
-| Business search p50 latency | 0.22 ms | 0.22 ms (search layer unaffected) |
-| Business search p95 latency | 0.32 ms | 0.32 ms (search layer unaffected) |
-| Cache hit-rate | N/A | > 80% after warm-up |
-| Repeat-request p95 (detail endpoint) | ~DB round-trip | < 5 ms (Redis) |
-
-Notes:
-- Search latency figures are for the PostgreSQL FTS/trigram path, not the cache layer.
-- Cache hit-rate measured via `/cache/stats` after steady-state traffic.
-
-## Load Testing
-
-```bash
-# Concurrent load test — reports p50/p95/p99 and cache hit-rate delta
-python scripts/cache_load_test.py load --rounds 5 --concurrency 20
-
-# Point-in-time stats snapshot
-python scripts/cache_load_test.py stats
-```
-
-See `scripts/cache_load_test.py` for chaos test checklist (Redis kill & recovery).
+See `docs/redis-runbook.md` for incident procedures and operational playbooks.

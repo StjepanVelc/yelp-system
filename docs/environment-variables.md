@@ -47,6 +47,29 @@ For production deployments:
 
 Note: the full Yelp dataset is intentionally not baked into Docker images or the Docker Postgres volume. In development, the large dataset is kept in a local database/import flow to avoid oversized images and slow rebuilds.
 
+## CDC platform variables
+
+Phase 3 introduces Kafka + Debezium for CDC-driven cache invalidation.
+
+Suggested local defaults:
+
+- `KAFKA_BOOTSTRAP_SERVERS=localhost:29092`
+- `DEBEZIUM_CONNECT_URL=http://localhost:8083`
+- `CDC_CONNECTOR_NAME=yelp-postgres`
+- `CDC_TOPIC_PREFIX=yelp`
+- `CDC_CONSUMER_GROUP=yelp-cdc-consumer`
+- `CDC_AUTO_OFFSET_RESET=latest`
+- `CDC_POLL_TIMEOUT_MS=1000`
+
+These are used by the CDC consumer and connector setup, and keep the local stack aligned with the compose services.
+
+Topic naming convention for this setup:
+
+- `yelp.public.businesses`
+- `yelp.public.reviews`
+
+Where `yelp` is the `database.server.name` (topic prefix) from Debezium connector config.
+
 ## Startup validation
 
 Critical settings are validated during service startup:

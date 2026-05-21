@@ -100,6 +100,7 @@ This project demonstrates a **production-style microservices architecture** with
 * ✅ Reviews system (paginated, sorted)
 * ✅ Interactive map on business detail (Leaflet + OpenStreetMap)
 * ✅ Redis cache layer (cache-aside, stampede protection, rollout flags, observability)
+* ✅ Event-driven cache invalidation (Debezium + Kafka CDC consumer)
 * ✅ gRPC communication between services
 * ✅ API Gateway routing & validation
 * ✅ Rate limiting + security headers (Nginx)
@@ -241,7 +242,7 @@ docker compose up -d
 
 ---
 
-## � Load Testing
+## 📈 Load Testing
 
 The system includes traffic testing for individual services and endpoints.
 
@@ -258,15 +259,9 @@ Tracked metrics:
 
 This project focuses on understanding how backend services communicate, how traffic flows through an API gateway, how data-heavy systems behave under load, and how caching, indexing and service boundaries affect performance.
 
----
+Consolidated implementation report (professional summary of completed platform upgrades):
 
-## 🛠️ Future Improvements
-
-- Redis Cluster / managed failover
-- Event-driven cache invalidation using CDC concepts
-- CI/CD pipeline with GitHub Actions
-- Document load testing results per service and endpoint
-- Improve observability with structured logs, metrics and request tracing
+* [docs/production-hardening-report.md](docs/production-hardening-report.md)
 
 ---
 
@@ -292,6 +287,12 @@ Docs:
 
 * [docs/redis-cache.md](docs/redis-cache.md) — cache contract, key format, TTL matrix, rollout flags
 * [docs/redis-runbook.md](docs/redis-runbook.md) — operations, alerting, incidents, backup/restore
+
+CDC smoke test helper:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\cdc-smoke-test.ps1 -SkipBringUp
+```
 
 ---
 

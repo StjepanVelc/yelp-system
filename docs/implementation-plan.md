@@ -13,10 +13,15 @@ Globalne granice scopea:
 - Redis je advisory cache.
 - Search rezultati nisu cacheirani i ne ulaze u CDC invalidation scope.
 
+Namjena ovog dokumenta:
+- plan i scope po fazama
+- rizici, verification checklist i "sto ne raditi"
+- bez detaljnog post-implementation izvjestaja
+
 ## Faza 1 - Observability foundation
 
 ### Status
-- ✅ Zavrseno (Maj 2026)
+- Plan baseline i scope reference
 
 ### Cilj
 Postaviti minimalni, ali koristan observability baseline kroz sve servise da odmah vidimo request flow, greske i latencije.
@@ -58,7 +63,7 @@ Postaviti minimalni, ali koristan observability baseline kroz sve servise da odm
 ## Faza 2 - Cache hardening
 
 ### Status
-- ✅ Zavrseno (Maj 2026)
+- Plan baseline i scope reference
 
 ### Cilj
 Ucvrstiti i izmjeriti postojeci Redis cache-aside bez promjene postojece semantike.
@@ -98,7 +103,7 @@ Ucvrstiti i izmjeriti postojeci Redis cache-aside bez promjene postojece semanti
 ## Faza 3 - Debezium + Kafka CDC invalidation
 
 ### Status
-- 🔶 Nije jos spremno za implementaciju bez dodatnog scaffolding-a
+- Plan baseline i scope reference
 
 ### Cilj
 Uvesti event-driven invalidation Redis kljuceva na promjene u tablicama businesses i reviews.
@@ -116,6 +121,54 @@ postgres -c wal_level=logical -c max_wal_senders=10 -c max_replication_slots=10
 
 POSTGRES_INITDB_ARGS se ne koristi u ovom planu.
 
+### Payload shape za CDC consumer
+
+Consumer treba raditi s minimalnim, stabilnim shape-om koji se može izvesti iz Debezium eventa.
+
+#### Raw Debezium signal koji je bitan
+
+- `op`: `c`, `u`, `d`, `r`
+- `source.table`
+- `source.ts_ms`
+- `before`
+- `after`
+
+#### Normalizirani interni event koji consumer koristi
+
+```json
+{
+  "table": "businesses",
+  "op": "u",
+  "entity_id": "business_id_or_review_id",
+  "business_id": null,
+  "changed_fields": ["city", "is_open"],
+  "before": {},
+  "after": {}
+}
+```
+
+#### Minimalna pravila po tablici
+
+- `businesses`
+  - `entity_id` = `id`
+  - `changed_fields` se računa usporedbom `before` i `after`
+  - za `u` evente consumer mora znati jesu li promijenjeni `city` ili `is_open`
+  - `business_id` nije potreban jer je `id` jedini ključ
+- `reviews`
+  - `entity_id` = `review_id`
+  - `business_id` se čita iz `after.business_id`, a za delete iz `before.business_id`
+  - za invalidaciju je dovoljno znati koji business je pogođen, ne treba kompletan review payload
+- `r` eventi
+  - u MVP-u se ignoriraju za invalidaciju
+  - cilj je reagirati samo na stvarne promjene, ne na snapshot/backfill noise
+
+#### Što consumer smije pretpostaviti
+
+- `before` može biti `null` kod create eventa
+- `after` može biti `null` kod delete eventa
+- ako `business_id` nije dostupan u `after`, consumer ga mora uzeti iz `before`
+- za `businesses` update consumer ne mora znati sve kolone, samo one koje utječu na mapping
+
 ### CDC mapping
 - businesses INSERT/UPDATE/DELETE:
   - invalidate yelp:prod:business:details:{id}:v1
@@ -125,6 +178,15 @@ POSTGRES_INITDB_ARGS se ne koristi u ovom planu.
   - invalidate yelp:prod:recommendation:by_business:{business_id}:*:v1
 - users:
   - trenutno no invalidation needed
+
+### Bitna odluka za reviews
+
+- Reviews su zaseban invalidation problem od businesses.
+- U trenutnom modelu reviews se upisuju u `reviews` tablicu, a business details se čitaju iz `businesses` tablice.
+- `businesses.review_count` i `businesses.stars` su već denormalizirane kolone u source tablici, ali u postojećem write pathu reviews ih ne ažurira.
+- Zato za MVP reviews CDC invalidira samo recommendation cache.
+- Business details cache se invalidira iz CDC-a samo ako business event stvarno mijenja `businesses` red, ili ako kasnije uvedemo write path koji iz reviews re-računa agregate u `businesses`.
+- Ako se u budućnosti doda automatsko re-računavanje `review_count` i `stars` na review write, tada treba proširiti mapping i invalidirati i `business.details:{id}:v1`.
 
 Redis delete je idempotentan:
 - delete existing key = OK
@@ -186,13 +248,24 @@ Redis delete je idempotentan:
 
 #### Definition of Ready za Fazu 3
 
-- [ ] Infrastruktura za Kafka i Debezium postoji u compose setupu
-- [ ] PostgreSQL ima logical replication postavke
-- [ ] CDC consumer može startati lokalno bez ručnih koraka
-- [ ] Known topic names i payload schema su zapisani
-- [ ] Invalidation mapping za `businesses` i `reviews` je jednoznačan
-- [ ] Fallback ponašanje za consumer outage je definirano
-- [ ] Jedan minimalni E2E test ili smoke test je dodan
+- [x] Infrastruktura za Kafka i Debezium postoji u compose setupu
+- [x] PostgreSQL ima logical replication postavke
+- [x] CDC consumer može startati lokalno bez ručnih koraka
+- [x] Known topic names i payload schema su zapisani
+- [x] Invalidation mapping za `businesses` i `reviews` je jednoznačan
+- [x] Fallback ponašanje za consumer outage je definirano
+- [x] Jedan minimalni E2E test ili smoke test je dodan
+
+#### Finalni MVP scope za Fazu 3
+
+- PostgreSQL logical replication je uključena i dokumentirana.
+- Kafka i Debezium pipeline su dostupni kroz lokalni compose setup.
+- CDC consumer sluša evente i invalidira Redis ključeve.
+- `businesses` eventi invalidiraju `business.details`, `business.cities` i `recommendation.by_business`.
+- `reviews` eventi invalidiraju samo `recommendation.by_business`.
+- Business details cache se ne invalidira na review evente dok reviews ne počnu mijenjati business agregate.
+- Outage consumer-a ostaje fail-safe kroz TTL i postojeći fallback invalidation.
+- Search cache i search invalidation ostaju izvan scopea.
 
 ## Faza 4 - Load testing + dashboards
 

@@ -1,123 +1,176 @@
-## Engineering Notes / Debugging Log
+# Engineering Notes
 
-This section documents key implementation and debugging issues encountered during development. The goal is to preserve the reasoning behind important technical decisions and avoid repeating the same debugging process later.
+## Purpose
 
-### Frontend Search Flow
+This document is the consolidated engineering record for implementation, debugging, and operational decisions made during the recent platform upgrade cycle. It replaces fragmented phase and personal log notes with a single professional reference.
 
-I added the search flow through the frontend, including:
+Document boundary:
 
-- URL query parameter handling
-- API request forwarding
-- development-only search controls
-- search path debugging support
+- debugging timeline and technical incidents
+- root causes, remediation decisions, and lessons learned
+- not the canonical source for final completion status (see production hardening report)
 
-This made it easier to test different search modes from the UI and verify how the request travels from the frontend to the API Gateway and backend services.
+## Scope Covered
 
-### Logger and gRPC Runtime Issue
+The notes below summarize implementation and validation work across:
 
-One issue appeared because the Docker environment was not using the same Protobuf/gRPC runtime assumptions as the locally generated files.
+- observability baseline and diagnostics workflow
+- cache hardening and operational controls
+- CDC-enabled cache invalidation (Debezium + Kafka)
+- local performance investigation and latency remediation
+- load-testing tooling and development quality-of-life improvements
 
-The generated gRPC stub files were produced with Protobuf gencode version 6.31.1, while the Docker images installed runtime version 5.29.6. Because of that mismatch, the service failed during startup validation.
+## Key Engineering Workstreams
 
-Resolution:
+### Frontend Search Flow and Debug Controls
 
-- identified the Protobuf/gRPC version mismatch
-- regenerated or aligned the generated `_pb2.py` files with the runtime version used inside Docker
-- rebuilt and restarted the Docker stack
-- confirmed that the services started correctly after the version alignment
+Implemented end-to-end frontend search flow support, including URL query propagation, API forwarding, and development-only controls for search-path testing. This improved request-path visibility from browser to gateway and downstream services.
 
-Lesson learned:
+### Logging, Tracing, and Runtime Consistency
 
-Generated files and runtime dependencies must be compatible. A service can work locally and still fail in Docker if the generated code and installed runtime versions are different.
+An early startup issue was caused by a Protobuf/gRPC version mismatch between generated stubs and Docker runtime dependencies.
 
-### PostgreSQL Connection Issue
+Actions taken:
 
-Another issue was related to PostgreSQL connection configuration. The service could not find or connect to the expected database.
+- aligned generated gRPC artifacts with runtime package versions
+- rebuilt and restarted the stack after dependency alignment
+- verified stable startup across affected services
 
-Resolution:
+Lesson learned: generated artifacts and runtime libraries must be version-compatible across local and containerized environments.
 
-- checked the database name and connection URL
-- separated environment files per service
-- made local configuration independent from Docker configuration
-- added clearer environment structure for development
+### PostgreSQL Configuration Reliability
 
-Lesson learned:
+Resolved recurring database connection failures caused by environment/config drift.
 
-Database connection errors are often not code errors. They can come from wrong database names, wrong hostnames, wrong ports, missing environment variables, or mixing local and Docker runtime configuration.
+Actions taken:
 
-### Mixed Local and Docker Processes
+- corrected database URL and service-level connection settings
+- separated local and container runtime configuration concerns
+- clarified environment variable structure to reduce ambiguity
 
-At one point, some services were running locally while others were running in Docker. The API Gateway and Recommendation Service were running, but the Business Service was not running correctly. Because of that, search requests returned no useful results.
+Lesson learned: many database incidents are configuration faults, not application logic defects.
 
-The problem was made worse by overlapping ports between local services and Docker containers.
+### Local vs Docker Runtime Separation
 
-Resolution:
+Investigations identified mixed local and containerized service execution as a recurring source of false diagnostics (for example, one service local, others in Docker).
 
-- checked which services were actually running
-- verified ports before testing
-- avoided mixing local and Docker execution unless intentionally testing that setup
-- restarted the correct stack before debugging API behavior
+Actions taken:
 
-Lesson learned:
+- verified active services and port ownership before testing
+- standardized test sessions to one runtime mode at a time
+- restarted the intended stack before latency or logic analysis
 
-Before debugging business logic, first verify the runtime environment: which services are running, on which ports, and whether they are local or containerized.
+Lesson learned: validate runtime topology before debugging business logic.
 
-### gRPC Docker Networking Issue
+### Docker gRPC Networking
 
-The gRPC connection behaved differently locally and inside Docker.
+Resolved inter-service connectivity issues caused by incorrect host addressing from within containers.
 
-Locally, `localhost:50051` works because the service is running on the host machine.
+Actions taken:
 
-Inside Docker, `localhost` points to the current container, not to another service container. Therefore, a container cannot reach another container through `localhost`.
+- replaced localhost assumptions with Docker service DNS names
+- moved gRPC host/port values to environment-driven configuration
+- validated container-to-container communication path
 
-Resolution:
+Lesson learned: inside Docker, localhost resolves to the current container, not peer services.
 
-- used the Docker Compose service name as the gRPC host
-- configured the service address through environment variables
-- used values such as `business-service:50051` inside Docker instead of `localhost:50051`
+### Full-Text Search Prerequisites
 
-Lesson learned:
+Addressed failures caused by missing database-side FTS prerequisites.
 
-In Docker, services communicate through Docker network names, not through the host machine's `localhost`.
+Actions taken:
 
-### Full-Text Search Issue
-
-The search endpoint returned HTTP 500 because the application expected a PostgreSQL full-text search column that did not exist yet in the database.
-
-The code expected:
-
-- `search_vector` column
-- FTS trigger
-- FTS index
-- existing rows to be backfilled
-
-But the database schema was still missing part of that structure.
-
-Resolution:
-
-- added a migration script for the FTS setup
-- added the required `search_vector` column
-- added trigger logic for keeping the search vector updated
+- added migration for `search_vector`, trigger logic, and index support
 - backfilled existing rows
-- added fallback search behavior
-- verified that the endpoint no longer fails when FTS is unavailable or incomplete
+- preserved fallback search path behavior when FTS is incomplete
 
-Lesson learned:
+Lesson learned: application features depending on DB-generated structures require strict migration order discipline.
 
-When application code depends on database-generated columns, triggers, indexes, or extensions, the database migration must be applied before the feature can work correctly.
+## Latency Investigation and Resolution
 
-### General Lesson
+### Incident Summary
 
-Many issues were not caused by the main Python code itself, but by the interaction between multiple layers:
+A significant local latency issue was traced to Windows localhost name resolution behavior. Requests routed through `localhost` incurred an approximately 2-second pre-application delay, while equivalent loopback requests to `127.0.0.1` completed in tens of milliseconds.
 
-- local runtime
-- Docker runtime
-- environment variables
-- service networking
-- generated gRPC code
-- PostgreSQL schema
-- migrations
-- frontend request flow
-- API Gateway forwarding
+### Why It Was Misleading
 
-This project showed that backend development is not only about writing endpoints. It is also about understanding how services, databases, generated code, configuration, and deployment environments work together.
+The delay affected both direct service calls and gateway-proxied calls, which initially suggested bottlenecks in authentication, cache, database, or proxy layers.
+
+### Investigation Method
+
+- collected baseline latency samples for gateway and direct endpoints
+- compared direct measurements on `localhost` versus `127.0.0.1`
+- validated service health and ruled out major query-path regressions
+- repeated tests after local URL normalization
+
+### Root Cause
+
+Windows localhost resolution/fallback path introduced a fixed network delay before requests reached application logic.
+
+### Remediation
+
+- switched local development/test URLs to `127.0.0.1`
+- kept Docker internal service addressing unchanged
+- re-ran benchmarks to establish corrected baseline
+
+### Before / After Snapshot
+
+Before (localhost-based tests):
+
+- gateway endpoints: approximately 3.2-3.5 s
+- direct service endpoints: approximately 2.0-2.2 s
+
+After (127.0.0.1-based tests):
+
+- direct service endpoints: approximately 15-20 ms
+- gateway endpoints: approximately 10-15 ms
+
+### Conclusion
+
+The major latency defect was environmental (hostname resolution), not business logic. Baseline performance for local development returned to expected millisecond ranges after loopback normalization.
+
+## Additional Operational Deliverables
+
+### Live Traffic Dashboard
+
+Implemented an interactive dashboard tool for local traffic generation and live KPI visualization, with export support for charts and full HTML snapshots.
+
+Primary script:
+
+- `scripts/traffic_dashboard.py`
+
+### Live Monitor and Static Reporting
+
+Implemented a terminal-based monitor that streams metrics and writes report artifacts (including HTML output) to test-results directories.
+
+Primary script:
+
+- `scripts/traffic_live_monitor.py`
+
+### LAN Testing Guide
+
+Documented host/client setup, LAN URL checks, firewall prerequisites, and troubleshooting for two-machine test sessions.
+
+Primary document:
+
+- `docs/testing-lan.md`
+
+### Gateway Development Fail-Open for User Status
+
+Added controlled development behavior to avoid non-critical local blocking when user-status service is intentionally absent.
+
+Primary module:
+
+- `services/api-gateway/app/clients/user_status_client.py`
+
+## Engineering Principles Reinforced
+
+- Validate infrastructure and runtime topology before optimizing application code.
+- Keep local and container configurations explicit and separated.
+- Treat observability as a core capability, not a post-incident add-on.
+- Require deterministic, repeatable test paths for performance and reliability conclusions.
+- Maintain one canonical documentation source to reduce drift and contradictory guidance.
+
+## Notes
+
+For final completion status and delivered scope summary, use `docs/production-hardening-report.md`.

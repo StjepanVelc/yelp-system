@@ -1,0 +1,25 @@
+{
+    "name": "yelp-postgres",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "database.hostname": "db",
+        "database.port": "5432",
+        "database.user": "postgres",
+        "database.password": "change_me",
+        "database.dbname": "yelp",
+        "topic.prefix": "yelp",
+        "table.include.list": "public.businesses,public.reviews",
+        "plugin.name": "pgoutput",
+        "slot.name": "yelp_cdc_slot",
+        "publication.name": "yelp_cdc_publication",
+        "publication.autocreate.mode": "filtered",
+        "snapshot.mode": "no_data",
+        "tombstones.on.delete": "false",
+        "include.schema.changes": "false",
+        "decimal.handling.mode": "double",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter.schemas.enable": "false"
+    }
+}

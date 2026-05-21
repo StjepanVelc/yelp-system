@@ -2,6 +2,12 @@
 
 Operational reference for the Redis cache layer. Covers incident procedures, alert thresholds, rollout mechanics, and rollback steps.
 
+Document boundary:
+
+- operational response, troubleshooting, and rollback
+- alerting policy and on-call actions
+- not a cache key/TTL contract document (see `docs/redis-cache.md`)
+
 ---
 
 ## Alerting Policy
@@ -150,6 +156,35 @@ Deterministic: the same `business_id` always routes to the same bucket. This mak
 2. Manual invalidation: `docker compose exec redis redis-cli DEL <key>` or use pattern delete
 3. If urgent: set `CACHE_SHADOW_MODE=true` to stop serving cached reads immediately without downtime
 4. Max stale window: details TTL (60m) — data is guaranteed fresh within 60 minutes even without explicit invalidation
+
+---
+
+### CDC Connector / Consumer Troubleshooting
+
+Use this flow when Redis invalidation via Debezium/Kafka is not happening.
+
+**Symptoms:** cache keys stay present after DB write, or no `cache_invalidation*` events in `cdc-consumer` logs.
+
+**Steps:**
+1. Check CDC stack status:
+  - `docker compose ps db zookeeper kafka debezium-connect cdc-consumer redis`
+2. Check Debezium connector status:
+  - `curl http://localhost:8083/connectors/yelp-postgres-connector/status`
+  - expected: connector `RUNNING`, task `0` `RUNNING`
+3. If connector is missing/failed, re-apply config:
+  - `./scripts/register-debezium-connector.ps1`
+4. Check topic availability:
+  - `docker compose exec kafka kafka-topics --bootstrap-server kafka:9092 --list`
+  - expected topics include `yelp.public.businesses` and `yelp.public.reviews`
+5. Check consumer logs for parsed events and invalidation:
+  - `docker compose logs cdc-consumer --tail=200`
+  - expected: `cache_invalidation` / `cache_invalidation_pattern`
+6. Run deterministic end-to-end smoke test:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/cdc-smoke-test.ps1 -SkipBringUp`
+
+**Notes:**
+- CDC is asynchronous; immediate Redis checks right after SQL write can be false negatives.
+- Treat smoke test result + consumer invalidation logs as source of truth.
 
 ---
 
