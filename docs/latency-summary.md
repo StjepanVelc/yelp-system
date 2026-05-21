@@ -21,7 +21,7 @@ This affected both direct service calls and Gateway-proxied requests, which made
 
 ## LinkedIn-ready version
 
-We found a very specific local performance bug in our API stack: on Windows, `localhost` was adding an unexpected 2-second delay before requests even reached the application. That made direct services and Gateway requests look slow, and it initially pointed us in the wrong direction toward auth, cache, DB, and proxy layers.
+I found a very specific local performance bug in our API stack: on Windows, `localhost` was adding an unexpected 2-second delay before requests even reached the application. That made direct services and Gateway requests look slow, and it initially pointed us in the wrong direction toward auth, cache, DB, and proxy layers.
 
 After comparing `localhost` with `127.0.0.1`, we confirmed the issue was hostname resolution/fallback behavior, not the application logic itself. Switching local development URLs to `127.0.0.1` brought request times down from seconds to milliseconds.
 
